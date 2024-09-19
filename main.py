@@ -13,4 +13,3 @@ class App():
 
 
 app = App()
-app.login()
