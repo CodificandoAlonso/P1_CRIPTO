@@ -26,11 +26,11 @@ class Server():
     def show_products(username):
         with open('jsones/products.json') as products:
             data = json.load(products)
-            output = {}
+            output = ""
             counter = 0
             for product in data:
                 if product["seller"] != username:
-                    output[counter] = product
+                    output +=  str(counter) + ": " + str(product) + "\n"
                     counter += 1
             
         return print(output)
