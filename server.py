@@ -6,8 +6,6 @@ from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 
 
-
-
 class Server():
 
 
@@ -24,8 +22,25 @@ class Server():
         with open('jsones/users.json') as users:
             data = json.load(users)
             for user in data:
-                if user["username"] == username and user["password"] == password:
-                    return True
+                if user["username"] == username:
+                    password = password.encode("utf-8")
+                    salt = eval(user["id"])
+                    print(salt)
+                    kdf = PBKDF2HMAC(
+                    algorithm=hashes.SHA256(),
+                    length=32,
+                    salt= salt,
+                    iterations=480000,
+                    )
+
+                    print(password)
+                    print(salt)
+                    key = base64.urlsafe_b64encode(kdf.derive(password))
+                    prevtoken = eval(user["token"])
+                    print(key)
+                    print(prevtoken)
+                    if key == prevtoken:
+                        return True
             return False
         
 
