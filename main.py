@@ -20,7 +20,6 @@ class App():
         if Server.check_username(username):
             password = getpass.getpass('Enter password: ')
             if Server.check_password(username, password):
-                print('You are logged in')
                 self.username = username
                 return True
             else:
@@ -35,31 +34,41 @@ class App():
             try:
                 if not self.logged:
 
-                    myinput = input("Hi. If you already have a registered username please type 'Log in' \n If you otherwise want to sign up, please type 'Sign up': ")
-                    while  myinput != "Log in" and myinput != "Sign up":
-                        myinput = input("Please type 'Log in' or 'Sign up': ")
-                    if myinput == "Sign up":
-                        self.signup()
-                        print("\n User created.\n Now you can log in. \n")
-                    else:
-                        if self.login():
-                            self.logged = True
+                    self.manage_user_session()
                 else:
-                    whatodo = input("You are logged in\n You can either view the available products(Type 'View products'), put products on sale('Sale'), view your messages('Messages') or log out(Type 'Log out')\n")
-                    while whatodo != "View products" and whatodo != "Sale" and whatodo != "Messages" and whatodo != "Log out":
-                        whatodo = input("Please type 'View products', 'Sale', 'Messages' or 'Log out': ")
-                    if whatodo == "View products":
-                        Server.show_products(self.username)
-                    elif whatodo == "Sale":
-                        Server.add_products(self.username)
-                    elif whatodo == "Messages":
-                        print("Messages")
-                    else:
-                        self.logged = False
-                        print("You have logged out")
+                    self.handle_user_actions()
             except KeyboardInterrupt:
                 print('Goodbye')
                 break
+    
+    
+    
+    
+    def handle_user_actions(self):
+        whatodo = input("You are logged in\n You can either view the available products(Type 'View products'), put products on sale('Sale'), view your messages('Messages') or log out(Type 'Log out')\n")
+        while whatodo != "View products" and whatodo != "Sale" and whatodo != "Messages" and whatodo != "Log out":
+            whatodo = input("Please type 'View products', 'Sale', 'Messages' or 'Log out': ")
+        if whatodo == "View products":
+            Server.show_products(self.username)
+        elif whatodo == "Sale":
+            Server.add_products(self.username)
+        elif whatodo == "Messages":
+            print("Messages")
+        else:
+            self.logged = False
+            print("You have logged out")
+
+    def manage_user_session(self):
+        myinput = input("Hi. If you already have a registered username please type 'Log in' \n If you otherwise want to sign up, please type 'Sign up': ")
+        while  myinput != "Log in" and myinput != "Sign up":
+            myinput = input("Please type 'Log in' or 'Sign up': ")
+        if myinput == "Sign up":
+            self.signup()
+            print("\n User created.\n Now you can log in. \n")
+        else:
+            if self.login():
+                self.logged = True
+                print('You are logged in')
 
 
 
