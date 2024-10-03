@@ -4,9 +4,9 @@ import getpass
 
 class user():
     def __init__(self, username, password):
-        self.username = validate_user(username)
-        self.password = validate_password(password)
-        save_user(self.username, self.password)
+        self.__username = validate_user(username)
+        self.__password = validate_password(password)
+        save_user(self.__username, self.__password)
 
 
 def validate_user(username):
@@ -30,7 +30,11 @@ def has_special_char(password):
 def validate_password( password):
     while len(password) < 8 or not any(char.isdigit() for char in password) or not any(char.isupper() for char in password) or not has_special_char(password):
         print('Password must be at least 8 characters long and contain at least one uppercase letter, one digit and one special character')
-        password = getpass.gettpass('Enter password again: ')
+    prev = password
+    password = getpass.getpass('Enter password again: ')
+    while password != prev:
+        print('Passwords do not match')
+        password = getpass.getpass('Enter password again: ')
     return password
 
 
