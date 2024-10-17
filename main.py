@@ -7,6 +7,7 @@ class App():
     def __init__(self):
         print('Welcome to the app, if anytime you want to exit, press Ctrl + C.\n While you are logged in, if you press Ctrl + E, you will be logged out')
         self.logged = False
+        self.server = Server()
         self.run()
 
     def signup(self):
@@ -49,11 +50,15 @@ class App():
         while whatodo != "View products" and whatodo != "Sale" and whatodo != "Messages" and whatodo != "Log out":
             whatodo = input("Please type 'View products', 'Sale', 'Messages' or 'Log out': ")
         if whatodo == "View products":
-            Server.show_products(self.username)
+            buy = input("Do you want to buy a product? Type: Y/N: ")
+            if buy == "Y":
+                number = int(input("Put the product number you want to buy: "))
+                self.server.buy_products(number, self.username)
+                
         elif whatodo == "Sale":
-            Server.add_products(self.username)
+            self.server.add_products(self.username)
         elif whatodo == "Messages":
-            print("Messages")
+            self.server.check_messages(self.username)
         else:
             self.logged = False
             print("You have logged out")
