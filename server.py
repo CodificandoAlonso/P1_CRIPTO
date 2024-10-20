@@ -25,7 +25,6 @@ class Server():
                 if user["username"] == username:
                     password = password.encode("utf-8")
                     salt = eval(user["id"])
-                    print(salt)
                     kdf = PBKDF2HMAC(
                     algorithm=hashes.SHA256(),
                     length=32,
@@ -33,12 +32,9 @@ class Server():
                     iterations=480000,
                     )
 
-                    print(password)
-                    print(salt)
+                    
                     key = base64.urlsafe_b64encode(kdf.derive(password))
                     prevtoken = eval(user["token"])
-                    print(key)
-                    print(prevtoken)
                     if key == prevtoken:
                         return True
             return False
@@ -60,6 +56,11 @@ class Server():
                 counter += 1
             if len(output) == 0:
                 return print("No products available")
+            print(output)
+            buy = input("Do you want to buy a product? Type: Y/N: ")
+            if buy == "Y":
+                number = int(input("Put the product number you want to buy: "))
+                self.buy_products(number, username)
         return print(output)
     
     def add_products(self, username):
@@ -95,10 +96,22 @@ class Server():
                 data = []
             content = "Hello " + product["seller"] + ", I have seen your product: " + product["name"] + \
             ", and I think the price of: " + product["price"] + " and I want to buy it. My name is " + buyer
+            key = Fernet.generate_key()
+            f = Fernet(key)
+            token = f.encrypt(content.encode("utf-8"))
+
+
+            # Desencriptar el token
+            decrypted_message = f.decrypt(token)
+
+            # Mostrar el mensaje desencriptado
+            print("Mensaje desencriptado:", decrypted_message)
+            print("Esta es la key: ", key)
+            
 
             
             
-            message = {"Sender": buyer, "Receiver": product["seller"], "message": content}
+            message = {"Sender": buyer, "Receiver": product["seller"], "message": str(token)}
             data.append(message)
             with open('jsones/m_unread.json', 'w', encoding='utf-8') as file:
                 json.dump(data, file, indent=4)

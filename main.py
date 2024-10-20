@@ -42,19 +42,12 @@ class App():
                 print('Goodbye')
                 break
     
-    
-    
-    
     def handle_user_actions(self):
-        whatodo = input("You are logged in\n You can either view the available products(Type 'View products'), put products on sale('Sale'), view your messages('Messages') or log out(Type 'Log out')\n")
+        whatodo = input("You can either view the available products(Type 'View products'), put products on sale('Sale'), view your messages('Messages') or log out(Type 'Log out')\n")
         while whatodo != "View products" and whatodo != "Sale" and whatodo != "Messages" and whatodo != "Log out":
             whatodo = input("Please type 'View products', 'Sale', 'Messages' or 'Log out': ")
         if whatodo == "View products":
-            buy = input("Do you want to buy a product? Type: Y/N: ")
-            if buy == "Y":
-                number = int(input("Put the product number you want to buy: "))
-                self.server.buy_products(number, self.username)
-                
+            Server.show_products(self.server, self.username)               
         elif whatodo == "Sale":
             self.server.add_products(self.username)
         elif whatodo == "Messages":

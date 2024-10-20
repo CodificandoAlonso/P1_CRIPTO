@@ -37,6 +37,7 @@ def has_special_char(password):
 def validate_password( password):
     while len(password) < 8 or not any(char.isdigit() for char in password) or not any(char.isupper() for char in password) or not has_special_char(password):
         print('Password must be at least 8 characters long and contain at least one uppercase letter, one digit and one special character')
+        password = getpass.getpass("Enter a correct password: ")
     prev = password
     password = getpass.getpass('Enter password again: ')
     while password != prev:
