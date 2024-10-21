@@ -43,7 +43,11 @@ class Message():
                     counter += 1
                     messages.append(message)
             if counter == 0:
-                return ("You don't have messages to read.")
+                if input("You don't have messages to read. Do you want to see your message history? Type Y/N: ") == "Y":
+                    return self.se(username)
+                else:
+                    return print("Going home page.")
+                
             if input("You have " + str(counter) + " new messages. Do you want to read them? Type Y/N: ") == "Y":                
                 for message in messages:
                     key = message["key"]
@@ -51,6 +55,8 @@ class Message():
                     decrypted_message = f.decrypt(message["message"].encode())
                     print("\n" + message["Sender"] + ": " + decrypted_message.decode())
                 self.move_to_read(messages, username)
+            """     if input("\nDo you want to respond the message? Type Y/N: ") == "Y":
+                        self.respond_message(message, username)"""
 
     def move_to_read(self, messages, username):
         with open('jsones/m_read.json') as file:
@@ -68,8 +74,45 @@ class Message():
                 return 'Error opening unread messages.'
             new_list = []
             for message in unread_data:
-                if message["Receiver"] != username or message not in messages:
+                if message["Receiver"] != username:
                     new_list.append(message)
             unread_data = new_list
             with open('jsones/m_unread.json', 'w', encoding='utf-8') as file:
                 json.dump(unread_data, file, indent=4)
+
+    def read_messages(self, username):
+        with open('jsones/m_read.json') as file:
+            try:
+                data = json.load(file)
+            except json.JSONDecodeError:
+                return("You don't have message in your history.")
+            counter = 0
+            messages = []
+            for message in data:
+                if username == message["Receiver"]:
+                    counter += 1
+                    messages.append(message)
+            if counter == 0:
+                return print ("You don't have messages in your histoty.")
+                               
+            for message in messages:
+                key = message["key"]
+                f = Fernet(key)
+                decrypted_message = f.decrypt(message["message"].encode())
+                print("\n" + message["Sender"] + ": " + decrypted_message.decode())
+            self.move_to_read(messages, username)
+
+    
+    def respond_message(self, message, username):
+        with open('jsones/m_read.json') as file:
+            try:
+                data = json.load(file)
+            except json.JSONDecodeError:
+                data = []
+            content = message["Receiver"] + 'has responded'
+            content += input("Write your message: ")
+            token = self.f.encrypt(content.encode("utf-8"))
+            new_message = {"Sender": username, "Receiver": message["Sender"], "message": token.decode(), "key": self.key.decode()}
+            data.append(new_message)
+            with open('jsones/m_unread.json', 'w', encoding='utf-8') as file:
+                json.dump(data, file, indent=4)
