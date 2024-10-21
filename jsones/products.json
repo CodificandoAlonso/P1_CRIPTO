@@ -3,10 +3,5 @@
         "name": "Bici",
         "price": "100",
         "seller": "Jorge"
-    },
-    {
-        "name": "Leash",
-        "price": "500",
-        "seller": "Veraa"
     }
 ]
