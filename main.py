@@ -1,6 +1,7 @@
 from cryptography.fernet import Fernet
 from user import user
 from server import Server
+from messages import Message
 import getpass
 
 class App():
@@ -51,7 +52,7 @@ class App():
         elif whatodo == "Sale":
             self.server.add_products(self.username)
         elif whatodo == "Messages":
-            self.server.check_messages(self.username)
+            Message.check_messages(self.username)
         else:
             self.logged = False
             print("You have logged out")

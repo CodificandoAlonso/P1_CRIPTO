@@ -4,11 +4,13 @@ import os
 from cryptography.fernet import Fernet
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
+from messages import Message
 
 
 class Server():
 
-
+    def __init__(self):
+        self.message = Message()
 
 
     def check_username(username):
@@ -86,53 +88,9 @@ class Server():
             print(product["seller"], product["name"])
             if input("Is this the product you want? Type Y/N: ")== "Y":
                 print("Enviando tu mensaje jueputa")
-                self.send_messages(product,username)
+                self.message.send_messages(product,username)
 
-    def send_messages(self, product, buyer):
-        with open('jsones/m_unread.json') as messages:
-            try:
-                data = json.load(messages)
-            except json.JSONDecodeError:
-                data = []
-            content = "Hello " + product["seller"] + ", I have seen your product: " + product["name"] + \
-            ", and I think the price of: " + product["price"] + " and I want to buy it. My name is " + buyer
-            key = Fernet.generate_key()
-            f = Fernet(key)
-            token = f.encrypt(content.encode("utf-8"))
-
-
-            # Desencriptar el token
-            decrypted_message = f.decrypt(token)
-
-            # Mostrar el mensaje desencriptado
-            print("Mensaje desencriptado:", decrypted_message)
-            print("Esta es la key: ", key)
-            
-
-            
-            
-            message = {"Sender": buyer, "Receiver": product["seller"], "message": str(token)}
-            data.append(message)
-            with open('jsones/m_unread.json', 'w', encoding='utf-8') as file:
-                json.dump(data, file, indent=4)
-
-    def check_messages(self, username):
-        with open('jsones/m_unread.json') as file:
-            try:
-                data = json.load(file)
-            except json.JSONDecodeError:
-                return("You don't have messages to read.")
-            counter = 0
-            messages = []
-            for message in data:
-                if username == message["Receiver"]:
-                    counter += 1
-                    messages.append(message)
-            if counter == 0:
-                return ("You don't have messages to read.")
-            if input("You have " + str(counter) + " new messages. Do you want to read them? Type Y/N: ") == "Y": 
-                for message in messages:
-                    print("\n" + message["Sender"] + ": " + message["message"])
+    
 
 
             
