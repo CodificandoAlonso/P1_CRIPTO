@@ -9,6 +9,7 @@ class App():
         print('Welcome to the app, if anytime you want to exit, press Ctrl + C.\n While you are logged in, if you press Ctrl + E, you will be logged out')
         self.logged = False
         self.server = Server()
+        self.message = Message()
         self.run()
 
     def signup(self):
@@ -52,7 +53,7 @@ class App():
         elif whatodo == "Sale":
             self.server.add_products(self.username)
         elif whatodo == "Messages":
-            Message.check_messages(self.username)
+            self.message.check_messages(self.username)
         else:
             self.logged = False
             print("You have logged out")

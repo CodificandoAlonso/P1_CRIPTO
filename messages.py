@@ -18,9 +18,8 @@ class Message():
                 data = json.load(messages)
             except json.JSONDecodeError:
                 data = []
-            content = "Hello " + product["seller"] + ", I have seen your product: " + product["name"] + \
-            ", and I think the price of: " + product["price"] + " and I want to buy it. My name is " + buyer
-            
+            content = "Product: " + product["name"]
+            content = input("Write your message: ")
             token = self.f.encrypt(content.encode("utf-8"))
             
 
@@ -45,14 +44,32 @@ class Message():
                     messages.append(message)
             if counter == 0:
                 return ("You don't have messages to read.")
-            if input("You have " + str(counter) + " new messages. Do you want to read them? Type Y/N: ") == "Y": 
-                """for message in messages:
-                    print("\n" + message["Sender"] + ": " + message["message"])"""
-                
-                # Desencriptar el token
-                decrypted_message = self.f.decrypt(message)
-                print(decrypted_message)
+            if input("You have " + str(counter) + " new messages. Do you want to read them? Type Y/N: ") == "Y":                
+                for message in messages:
+                    key = message["key"]
+                    f = Fernet(key)
+                    decrypted_message = f.decrypt(message["message"].encode())
+                    print("\n" + message["Sender"] + ": " + decrypted_message.decode())
+                self.move_to_read(messages, username)
 
-                # Mostrar el mensaje desencriptado
-                print("Mensaje desencriptado:", decrypted_message)
-                print("Esta es la key: ", self.key)
+    def move_to_read(self, messages, username):
+        with open('jsones/m_read.json') as file:
+            try:
+                read_data = json.load(file)
+            except json.JSONDecodeError:
+                read_data = []
+            read_data.extend(messages)
+            with open('jsones/m_read.json', 'w', encoding='utf-8') as file:
+                json.dump(read_data, file, indent=4)
+            try:
+                with open('jsones/m_unread.json') as file:
+                    unread_data = json.load(file)
+            except json.JSONDecodeError:    
+                return 'Error opening unread messages.'
+            new_list = []
+            for message in unread_data:
+                if message["Receiver"] != username or message not in messages:
+                    new_list.append(message)
+            unread_data = new_list
+            with open('jsones/m_unread.json', 'w', encoding='utf-8') as file:
+                json.dump(unread_data, file, indent=4)
