@@ -2,19 +2,13 @@
     {
         "Sender": "Hector",
         "Receiver": "Jorge",
-        "message": "gAAAAABnFpbO9j6gP6F8HHBQfKUsGgDf8WRR2YysQ_7OrSay9YZwLOYkjaGLpx7tB9hi_hBb1YMGKYjnFZSe3dLnCIyXDD-S3w==",
-        "key": "VgclV96Nu0tcjuHPFa_S37p40YW5Lt0N_glH-hTt_Jg="
+        "message": "gAAAAABnF2bnW5vnwtrGNyX_l_VH9xkEuDeEPYqXMzRQXndSrE5-5n5C88DcITAa5nt05sAd6L4bxSagdJF1bB2J2zec97_VlQ==",
+        "key": "uxgblrtJJXCIsE9xEWpBXvlG1y0YM_nwm49ju06UxXc="
     },
     {
         "Sender": "Jorge",
         "Receiver": "Hector",
-        "message": "gAAAAABnFpcDkHiMFEDVWrx0hum3VvmO4TXZc36fwdgdYeXy9R9lsb6GD4IhE2OLugC6wQQ-ZWT11Uo1Bq0CHZcNjGgN1fCrALZYi-DFwD3kux-hOB70f82slt7tFLPJt0b4YdOdGtoC",
-        "key": "SfX_VCAYHypO1j8lbXvCvX039F4CmtConuD838dhuU4="
-    },
-    {
-        "Sender": "Hector",
-        "Receiver": "Jorge",
-        "message": "gAAAAABnFpcyl7cKVaeHXL24DJMqFQVO25G3iD3cnkqCUZyUHZFnMYloVU9NehV6c00yBKjAQxeVov88Vwam33Sec1FdiYEuWa2bZzRVQVOmTN8CtFnsp6E=",
-        "key": "SfX_VCAYHypO1j8lbXvCvX039F4CmtConuD838dhuU4="
+        "message": "gAAAAABnF2nJRw6JgO7KEs-8c99_i-Ogm35SQnGZXwNt-SEBm4TQzbpAuSMcGF1lrxfHmb_NiKXIJDKJsX_O_uL5zjZITprydFqJ3UqWLCRwNMCkUzHj2G4=",
+        "key": "sfML8rIQif2m889BuFL7qbps9yp5Ex269hTrjBSA9_Q="
     }
 ]

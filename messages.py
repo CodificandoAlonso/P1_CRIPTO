@@ -51,7 +51,7 @@ class Message():
             if input("You have " + str(counter) + " new messages. Do you want to read them? Type Y/N: ") == "Y":                
                 for message in messages:
                     key = message["key"]
-                    f = Fernet(key)
+                    f = Fernet(key.encode())
                     decrypted_message = f.decrypt(message["message"].encode())
                     print("\n" + message["Sender"] + ": " + decrypted_message.decode())
                     if input("\nDo you want to respond the message? Type Y/N: ") == "Y":
@@ -95,13 +95,16 @@ class Message():
                     messages.append(message)
             if counter == 0:
                 return print ("You don't have messages in your histoty.")
-                               
+            counter = 0
             for message in messages:
                 key = message["key"]
-                f = Fernet(key)
+                f = Fernet(key.encode())
                 decrypted_message = f.decrypt(message["message"].encode())
-                print("\n" + message["Sender"] + ": " + decrypted_message.decode())
-            self.move_to_read(messages, username)
+                print("\n" + str(counter) + ": " + message["Sender"] + ": " + decrypted_message.decode())
+                counter += 1
+            if input("Do you want to respond a message? Type Y/N: ") == "Y":
+                message_number = int(input("Type the number of the message you want to respond: "))
+                self.respond_message(messages[message_number])
 
     
     def respond_message(self, message):
