@@ -78,12 +78,11 @@ def save_user(username, password):
 
 
 def generate_private_key():
-    private_key =  rsa.generate_private_key(
+    return rsa.generate_private_key(
         public_exponent=65537,
         key_size=4096,
     )
-    print("Private key generated: ", str(private_key))
-    return  private_key
+    
 
 
 def generate_public_keys(username, private_key):
