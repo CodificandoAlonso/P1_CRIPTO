@@ -91,9 +91,11 @@ def generate_keys(username):
 
     with open("keys/" + username + "/"+username+"_private_key.pem", "wb") as f:
         f.write(private_key.private_bytes(
-            encoding=serialization.Encoding.PEM,
-            format=serialization.PublicFormat.SubjectPublicKeyInfo
-        ))
+        encoding=serialization.Encoding.PEM,
+        format=serialization.PrivateFormat.TraditionalOpenSSL,
+        encryption_algorithm=serialization.NoEncryptiousern()
+    ))
+
 
     with open("keys/" + username + "/"+username+"_public_key.pem", "wb") as f:
         f.write(public_key.public_bytes(

@@ -4,6 +4,7 @@ import os
 from cryptography.fernet import Fernet
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
+from cryptography.hazmat.primitives.ciphers.aead import ChaCha20Poly1305
 from messages import Message
 
 
@@ -11,6 +12,16 @@ class Server():
 
     def __init__(self):
         self.message = Message()
+        server_dir = os.path.join('keys', "Server")
+        """Primera instanciacion del servidor. Creamos localizacion de clave
+        para desencriptar los jsones y creamos los jsones encriptados"""  
+        if not os.path.isdir(server_dir):
+            os.makedirs(server_dir, exist_ok=True)
+            self.create_key(server_dir)
+            self.__key = self.get_key(server_dir)
+            self.create_jsones()
+        self.__key = self.get_key(server_dir)
+        print(self.__key)
 
 
     def check_username(username):
@@ -91,6 +102,57 @@ class Server():
                 self.message.send_messages(product,username)
 
     
+    def encrypt_and_save_json(data, file_path, key):
+        # Convertir el JSON a una cadena
+        json_str = json.dumps(data)
+        
+        # Generar un nonce de 12 bytes
+        nonce = os.urandom(12)
+        
+        # Crear una instancia de ChaCha20Poly1305
+        chacha = ChaCha20Poly1305(key)
+        
+        # Cifrar el contenido JSON
+        ciphertext = chacha.encrypt(nonce, json_str.encode('utf-8'), None)
+        
+        # Guardar el contenido cifrado en un archivo
+        with open(file_path, 'wb') as file:
+            file.write(nonce + ciphertext)
 
+
+
+    def create_key(self,route):
+        try:
+            with open(route + "/key.bin", 'wb') as key_file:
+                key = ChaCha20Poly1305.generate_key()
+                key_file.write(key)
+        except FileNotFoundError:
+            key = ChaCha20Poly1305.generate_key()
+            key_file.write(key)
 
             
+    def get_key(self, route):
+        with open(route + "/key.bin", 'rb') as key_file:
+            return key_file.read()
+        
+
+
+    def create_jsones(self):
+        """users    products    m_unread     m_read"""
+        encrypter = ChaCha20Poly1305(self.__key)
+        self.create_each_json(encrypter, "users.json")
+        self.create_each_json(encrypter, "products.json")
+        self.create_each_json(encrypter, "m_unread.json")
+        self.create_each_json(encrypter, "m_read.json")
+
+    def create_each_json(self, encrypter, route):
+        json_route = os.path.join('jsones')
+        with open(json_route + "/" + route, 'wb') as file:
+
+            data = []
+            json_str = json.dumps(data)
+            nonce = os.urandom(12)
+            
+            users = encrypter.encrypt(nonce,json_str.encode('utf-8'), None)
+            file.write(nonce + users)
+
