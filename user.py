@@ -15,7 +15,11 @@ class user():
     def __init__(self, username, password):
         self.__username = validate_user(username)
         self.__password = validate_password(password)
+        self.__private_key = generate_private_key()
         save_user(self.__username, self.__password)
+        generate_public_keys(self.__username, self.__private_key)
+
+    
 
 
 def validate_user(username):
@@ -71,3 +75,31 @@ def save_user(username, password):
 
     with open('jsones/users.json', 'w', encoding='utf-8') as file:
         json.dump(users, file, indent=4)
+
+
+def generate_private_key():
+    private_key =  rsa.generate_private_key(
+        public_exponent=65537,
+        key_size=4096,
+    )
+    print("Private key generated: ", str(private_key))
+    return  private_key
+
+
+def generate_public_keys(username, private_key):
+
+    user_dir = os.path.join('keys', username)
+    os.makedirs(user_dir, exist_ok=True)
+
+
+    public_key = private_key.public_key()
+
+
+    with open("keys/" + username + "/"+username+"_public_key.pem", "wb") as f:
+        f.write(public_key.public_bytes(
+            encoding=serialization.Encoding.PEM,
+            format=serialization.PublicFormat.SubjectPublicKeyInfo
+        ))
+
+
+    

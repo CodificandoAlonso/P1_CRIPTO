@@ -3,6 +3,7 @@ from user import user
 from server import Server
 from messages import Message
 import getpass
+import os, shutil
 
 class App():
     def __init__(self):
@@ -41,6 +42,8 @@ class App():
                 else:
                     self.handle_user_actions()
             except KeyboardInterrupt:
+                if os.path.exists('keys'):
+                    shutil.rmtree('keys')
                 print('Goodbye')
                 break
     
@@ -69,8 +72,6 @@ class App():
             if self.login():
                 self.logged = True
                 print('You are logged in')
-
-
 
 
 
