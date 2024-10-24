@@ -11,7 +11,7 @@ from messages import Message
 class Server():
 
     def __init__(self):
-        self.message = Message()
+        self.message = Message(self)
         server_dir = os.path.join('keys', "Server")
         """Primera instanciacion del servidor. Creamos localizacion de clave
         para desencriptar los jsones y creamos los jsones encriptados"""  
@@ -24,82 +24,101 @@ class Server():
         print(self.__key)
 
 
-    def check_username(username):
-        with open('jsones/users.json') as users:
+
+
+
+
+    def check_username(self,username):
+        """with open('jsones/users.json') as users:
             data = json.load(users)
             for user in data:
                 if user['username'] == username :
                     return True
-            return False
-    def check_password(username, password):
-        with open('jsones/users.json') as users:
-            data = json.load(users)
-            for user in data:
-                if user["username"] == username:
-                    password = password.encode("utf-8")
-                    salt = eval(user["id"])
-                    kdf = PBKDF2HMAC(
-                    algorithm=hashes.SHA256(),
-                    length=32,
-                    salt= salt,
-                    iterations=480000,
-                    )
+            return False"""
+        data = self.open_and_return_jsons('jsones/users.json')
+        print(data)
+        for users in data:
+            if users['username'] == username :
+                    return True
+        return False
+        
 
-                    
-                    key = base64.urlsafe_b64encode(kdf.derive(password))
-                    prevtoken = eval(user["token"])
-                    if key == prevtoken:
-                        return True
-            return False
+    def check_password(self,username, password):
+        """with open('jsones/users.json') as users:
+            data = json.load(users)"""
+        users = self.open_and_return_jsons('jsones/users.json')
+        for user in users:
+            if user["username"] == username:
+                password = password.encode("utf-8")
+                salt = eval(user["id"])
+                kdf = PBKDF2HMAC(
+                algorithm=hashes.SHA256(),
+                length=32,
+                salt= salt,
+                iterations=480000,
+                )
+
+                
+                key = base64.urlsafe_b64encode(kdf.derive(password))
+                prevtoken = eval(user["token"])
+                if key == prevtoken:
+                    return True
+        return False
         
 
 
     def show_products(self, username):
-        with open('jsones/products.json') as products:
+        """with open('jsones/products.json') as products:
             try:
                 data = json.load(products)
             except json.JSONDecodeError:
-                return print("No products available")
-            output = ""
-            counter = 0
-            for product in data:
-                if product["seller"] != username:
-                    output +=  str(counter) + ": " + str(product) + "\n"
-                    counter += 1
+                return print("No products available")"""
+        products = self.open_and_return_jsons('jsones/products.json')
+        if products == []:
+            return print("No products available")
+        output = ""
+        counter = 0
+        for product in products:
+            if product["seller"] != username:
+                output +=  str(counter) + ": " + str(product) + "\n"
                 counter += 1
-            if len(output) == 0:
-                return print("No products available")
-            print(output)
-            buy = input("Do you want to buy a product? Type: Y/N: ")
-            if buy == "Y":
-                number = int(input("Put the product number you want to buy: "))
-                self.buy_products(number, username)
+            counter += 1
+        if len(output) == 0:
+            return print("No products available")
+        print(output)
+        buy = input("Do you want to buy a product? Type: Y/N: ")
+        if buy == "Y":
+            number = int(input("Put the product number you want to buy: "))
+            self.buy_products(number, username)
         return print(output)
     
     def add_products(self, username):
-        with open('jsones/products.json') as products:
+        """ with open('jsones/products.json') as products:
             try:
                 data = json.load(products)
             except json.JSONDecodeError:
-                data = []
-            name = input("Enter the name of the product: ")
-            price = input("Enter the price of the product: ")
-            data.append({"name": name, "price": price, "seller": username})
-            with open('jsones/products.json', 'w', encoding='utf-8') as file:
-                json.dump(data, file, indent=4)
-            return print("Product added")
+                data = []"""
+        products = self.open_and_return_jsons('jsones/products.json')
+        name = input("Enter the name of the product: ")
+        price = input("Enter the price of the product: ")
+        products.append({"name": name, "price": price, "seller": username})
+        """with open('jsones/products.json', 'w', encoding='utf-8') as file:
+            json.dump(data, file, indent=4)"""
+        self.save_jsons(products, 'jsones/products.json')
+        return print("Product added")
         
     def buy_products(self, number, username):
-        with open('jsones/products.json') as products:
+        """with open('jsones/products.json') as products:
             try:
                 data = json.load(products)
             except json.JSONDecodeError:
-                print("There are no products to buy")
-            product = data[number]
-            print(product["seller"], product["name"])
-            if input("Is this the product you want? Type Y/N: ")== "Y":
-                print("Enviando tu mensaje jueputa")
-                self.message.send_messages(product,username)
+                print("There are no products to buy")"""
+        products = self.open_and_return_jsons('jsones/products.json')
+        product = products[number]
+        print(product["seller"], product["name"])
+        if input("Is this the product you want? Type Y/N: ")== "Y":
+            print("Enviando tu mensaje jueputa")
+            self.message.send_messages(product,username)
 
     
     def encrypt_and_save_json(data, file_path, key):
@@ -156,3 +175,28 @@ class Server():
             users = encrypter.encrypt(nonce,json_str.encode('utf-8'), None)
             file.write(nonce + users)
 
+
+
+    def open_and_return_jsons(self,route):
+        with open(route, 'rb') as file:
+            data = file.read()
+        nonce = data[:12]
+        ciphertext = data[12:]
+        
+        # Crear una instancia de ChaCha20Poly1305
+        chacha = ChaCha20Poly1305(self.__key)
+        
+        # Descifrar el contenido JSON
+        json_str = chacha.decrypt(nonce, ciphertext, None)
+        
+        # Convertir la cadena JSON a un objeto Python
+        return eval(json_str)
+    
+
+    def save_jsons(self, data, route):
+        with open(route , 'wb') as file:
+            str_data = str(data)
+            nonce = os.urandom(12)
+            encrypter = ChaCha20Poly1305(self.__key)
+            users = encrypter.encrypt(nonce,str_data.encode('utf-8'), None)
+            file.write(nonce + users)

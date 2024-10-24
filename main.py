@@ -1,5 +1,5 @@
 from cryptography.fernet import Fernet
-from user import user
+from user import User
 from server import Server
 from messages import Message
 import getpass
@@ -10,25 +10,26 @@ class App():
         print('Welcome to the app, if anytime you want to exit, press Ctrl + C.\n While you are logged in, if you press Ctrl + E, you will be logged out')
         self.logged = False
         self.server = Server()
-        self.message = Message()
+        self.message = Message(self.server)
         self.run()
 
     def signup(self):
         username = input('Enter username: ')
         password = getpass.getpass('Enter password: ')
-        user(username, password)
+        user = User(username, password, self.server)
 
 
     def login(self):
         username = input('Enter username: ')
-        if Server.check_username(username):
+        if self.server.check_username(username):
             password = getpass.getpass('Enter password: ')
-            if Server.check_password(username, password):
+            if self.server.check_password(username, password):
                 self.username = username
                 return True
             else:
                 print('Wrong password')
                 return False
+
 
 
 
@@ -50,7 +51,7 @@ class App():
         while whatodo != "View products" and whatodo != "Sale" and whatodo != "Messages" and whatodo != "Log out":
             whatodo = input("Please type 'View products', 'Sale', 'Messages' or 'Log out': ")
         if whatodo == "View products":
-            Server.show_products(self.server, self.username)               
+            self.server.show_products(self.username)               
         elif whatodo == "Sale":
             self.server.add_products(self.username)
         elif whatodo == "Messages":

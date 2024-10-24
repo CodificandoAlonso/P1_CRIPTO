@@ -9,26 +9,25 @@ from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 
 class Message():
     
-    def __init__(self):
+    def __init__(self, server):
+        self.access_server = server
         self.key = Fernet.generate_key()
         self.f = Fernet(self.key)
     def send_messages(self, product, buyer):
-        with open('jsones/m_unread.json') as messages:
+        """with open('jsones/m_unread.json') as messages:
             try:
                 data = json.load(messages)
             except json.JSONDecodeError:
-                data = []
-            content = "Product: " + product["name"]
-            content = input("Write your message: ")
-            token = self.f.encrypt(content.encode("utf-8"))
-            
-
-            
-            
-            message = {"Sender": buyer, "Receiver": product["seller"], "message": token.decode(), "key": self.key.decode()}
-            data.append(message)
-            with open('jsones/m_unread.json', 'w', encoding='utf-8') as file:
-                json.dump(data, file, indent=4)
+                data = []"""
+        list_messages = self.access_server.open_and_return_jsons('jsones/m_unread.json')
+        content = "Product: " + product["name"]
+        content = input("Write your message: ")
+        token = self.f.encrypt(content.encode("utf-8"))
+        message = {"Sender": buyer, "Receiver": product["seller"], "message": token.decode(), "key": self.key.decode()}
+        list_messages.append(message)
+        """with open('jsones/m_unread.json', 'w', encoding='utf-8') as file:
+            json.dump(data, file, indent=4)"""
+        self.access_server.save_jsons(list_messages,'jsones/m_unread.json')
 
     def check_messages(self, username):
         with open('jsones/m_unread.json') as file:
