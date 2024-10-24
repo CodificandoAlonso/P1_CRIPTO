@@ -42,8 +42,6 @@ class App():
                 else:
                     self.handle_user_actions()
             except KeyboardInterrupt:
-                if os.path.exists('keys'):
-                    shutil.rmtree('keys')
                 print('Goodbye')
                 break
     
