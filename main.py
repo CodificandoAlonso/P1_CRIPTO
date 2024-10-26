@@ -43,6 +43,7 @@ class App():
                 else:
                     self.handle_user_actions()
             except KeyboardInterrupt:
+                self.server.delete_symetric()
                 print('Goodbye')
                 break
     

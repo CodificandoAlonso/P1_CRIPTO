@@ -76,7 +76,7 @@ class Server():
         for product in products:
             if product["seller"] != username:
                 output +=  str(counter) + ": " + str(product) + "\n"
-                counter += 1
+            counter += 1
         if len(output) == 0:
             return print("No products available")
         print(output)
@@ -195,3 +195,7 @@ class Server():
             encrypter = ChaCha20Poly1305(self.__key)
             users = encrypter.encrypt(nonce,str_data.encode('utf-8'), None)
             file.write(nonce + users)
+
+    def delete_symetric(self):
+        encrypter = ChaCha20Poly1305(self.__key)
+        self.create_each_json(encrypter, "simetric_keys.json")
