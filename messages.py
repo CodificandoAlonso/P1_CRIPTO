@@ -36,6 +36,7 @@ class Message():
         else:
             #Buscamos la clave privada de buyer
             pass
+        #coentrsadfl;asdkfj;asldkfja;sldkfjla;skdfasdfasdf
         #Obtenemos la clave publica de product["seller"]
         route = "keys/" + product["seller"] + "/" + product["seller"] + "_public_key.pem"
         with open(route, "rb") as key_file:
