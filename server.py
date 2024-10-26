@@ -163,6 +163,7 @@ class Server():
         self.create_each_json(encrypter, "products.json")
         self.create_each_json(encrypter, "m_unread.json")
         self.create_each_json(encrypter, "m_read.json")
+        self.create_each_json(encrypter, "simetric_keys.json")
 
     def create_each_json(self, encrypter, route):
         json_route = os.path.join('jsones')
