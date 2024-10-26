@@ -68,11 +68,6 @@ class Server():
 
 
     def show_products(self, username):
-        """with open('jsones/products.json') as products:
-            try:
-                data = json.load(products)
-            except json.JSONDecodeError:
-                return print("No products available")"""
         products = self.open_and_return_jsons('jsones/products.json')
         if products == []:
             return print("No products available")
@@ -82,7 +77,6 @@ class Server():
             if product["seller"] != username:
                 output +=  str(counter) + ": " + str(product) + "\n"
                 counter += 1
-            counter += 1
         if len(output) == 0:
             return print("No products available")
         print(output)
