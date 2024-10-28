@@ -8,6 +8,8 @@ from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa, padding
+from cryptography.exceptions import InvalidKey
+
 
 class Message():
     
@@ -35,7 +37,7 @@ class Message():
             key = Fernet.generate_key()
             f = Fernet(key)
         else:
-            #Buscamos la clave privada de buyer
+            #BUSCAMOS LA CLAVE PRIVADA DE BUYER
             route = "keys/" + buyer + "/" + buyer + "_private_key.pem"
             with open(route, "rb") as key_file:
                 private_key = serialization.load_pem_private_key(
@@ -77,6 +79,22 @@ class Message():
                 label=None
             )
         )
+        #COMO ES LA PRIMERA VEZ, ENCRIPTO TMB ESTO CON LA PRIVADA DE BUYER 
+        route = "keys/" + buyer + "/" + buyer + "_private_key.pem"
+        with open(route, "rb") as key_file:
+            private_key = serialization.load_pem_private_key(
+                key_file.read(),
+                password=None,
+            )
+            encrypted_simetric_key = private_key.sign(
+                encrypted_simetric_key,
+                padding.PSS(
+                mgf=padding.MGF1(hashes.SHA256()),
+                salt_length=padding.PSS.MAX_LENGTH
+                                                    ),
+                hashes.SHA256()
+            )
+
         encrypted_simetric_key2 = public_key_buyer.encrypt(  #ENCRIPTO CLAVE SIMETRICA2
             key,
             padding.OAEP(
@@ -85,6 +103,7 @@ class Message():
                 label=None
             )
         )
+
         content_to_save = {"Sender": buyer, "Receiver":product["seller"], "Key": encrypted_simetric_key }
         keys.append(content_to_save)
         content_to_save = {"Sender": product["seller"], "Receiver":buyer, "Key": encrypted_simetric_key2 }
@@ -131,14 +150,40 @@ class Message():
                 for item in conversations:
                     if item["Receiver"] == username and message["Sender"] == item["Sender"]:
                         sim_key_encrypted = item["Key"]
-                sim_key_decrypted = private_key.decrypt(
-                sim_key_encrypted,
-                padding.OAEP(
-                    mgf=padding.MGF1(algorithm=hashes.SHA256()),
-                    algorithm=hashes.SHA256(),
-                    label=None
+                    try:
+                        sim_key_decrypted = private_key.decrypt(
+                        sim_key_encrypted,
+                        padding.OAEP(
+                            mgf=padding.MGF1(algorithm=hashes.SHA256()),
+                            algorithm=hashes.SHA256(),
+                            label=None
+                            )
                     )
-                )
+                    except ValueError:
+                        #COJO LA PRIVADA DEL SENDER
+                        route = "keys/" + message["Sender"] + "/" + message["Sender"] + "_public_key.pem"
+                        with open(route, "rb") as key_file:
+                            public_key = serialization.load_pem_public_key(
+                            key_file.read()
+                        )
+                        public_key.verify(
+                            sim_key_encrypted,
+                            sim_key_almost_decrypted,  # Este es el mensaje firmado
+                            padding.PSS(
+                                mgf=padding.MGF1(hashes.SHA256()),
+                                salt_length=padding.PSS.MAX_LENGTH
+                            ),
+                            hashes.SHA256()
+                        )
+                        sim_key_decrypted = private_key.decrypt(
+                        sim_key_almost_decrypted,
+                        padding.OAEP(
+                            mgf=padding.MGF1(algorithm=hashes.SHA256()),
+                            algorithm=hashes.SHA256(),
+                            label=None
+                            )
+                        )
+
                 f = Fernet(sim_key_decrypted)
                 token = f.decrypt(encrypted_message.encode("utf-8"))
                 print("\n" + message["Sender"] + ": " + token.decode())
