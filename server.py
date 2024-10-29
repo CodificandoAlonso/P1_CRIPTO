@@ -217,6 +217,21 @@ class Server():
             ),
             hashes.SHA256()
         )
+    
+    def verify_with_public(self, signature, message, public_key_route):
+        with open(public_key_route, "rb") as key_file:
+            public_key = serialization.load_pem_public_key(
+                key_file.read()
+            )
+        public_key.verify(
+            signature,
+            message,
+            padding.PSS(
+                mgf=padding.MGF1(hashes.SHA256()),
+                salt_length=padding.PSS.MAX_LENGTH
+            ),
+            hashes.SHA256()
+        )
 
     def decrypt_with_private(self, encrypted, private_key_route):
         with open(private_key_route, "rb") as key_file:
@@ -238,7 +253,7 @@ class Server():
             public_key = serialization.load_pem_public_key(
                 key_file.read()
             )
-        print("\n[DEBUG] Encrypting keys with public receiver key method RSA with key length 4096\n")
+        print("\n[DEBUG] Encrypting keys with public key method RSA with key length 4096\n")
         return public_key.encrypt(
             message,
             padding.OAEP(

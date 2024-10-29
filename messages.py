@@ -142,11 +142,12 @@ class Message():
         if input("You have " + str(counter) + " new messages. Do you want to read them? Type Y/N: ") == "Y":                
             #Coger la clave privada del usuario para desencriptar
             route = "keys/" + username + "/" + username + "_private_key.pem"
-            with open(route, "rb") as key_file:
+            """with open(route, "rb") as key_file:
                 private_key = serialization.load_pem_private_key(
                 key_file.read(),
                 password=None,
-            )
+            )"""
+            private_key = self.access_server.load_private_key(route)
             new_unread = []
             for message in messages:
                 encrypted_message = message["message"]
@@ -169,29 +170,18 @@ class Message():
                 )
                 else:
                     #COJO LA PUBLICA DEL SENDER
-                    route = "keys/" + message["Sender"] + "/" + message["Sender"] + "_public_key.pem"
-                    with open(route, "rb") as key_file:
-                        public_key = serialization.load_pem_public_key(
-                        key_file.read()
-                    )
-                    #VERIFICO
-                        public_key.verify(
-                            sign,
-                            sim_key_encrypted,
-                            padding.PSS(
-                                mgf=padding.MGF1(hashes.SHA256()),
-                                salt_length=padding.PSS.MAX_LENGTH
-                            ),
-                            hashes.SHA256()
-                        )
-                    sim_key_decrypted = private_key.decrypt(
+                    route_sender_pub = "keys/" + message["Sender"] + "/" + message["Sender"] + "_public_key.pem"
+                    self.access_server.verify_with_public(sign, sim_key_encrypted, route_sender_pub)
+
+                    """sim_key_decrypted = private_key.decrypt(
                     sim_key_encrypted,
                     padding.OAEP(
                         mgf=padding.MGF1(algorithm=hashes.SHA256()),
                         algorithm=hashes.SHA256(),
                         label=None
                         )
-                    )
+                    )"""
+                    sim_key_decrypted = self.access_server.decrypt_with_private(sim_key_encrypted, route)
 
                 f = Fernet(sim_key_decrypted)
                 token = f.decrypt(encrypted_message.encode("utf-8"))
@@ -216,30 +206,12 @@ class Message():
         #Coger la clave privada del usuario para desencriptar
         route_usr_pub = "keys/" + username + "/" + username + "_public_key.pem"
         message = message.encode("utf-8")
-
-        """with open(route_usr_pub, "rb") as key_file:
-            public_key = serialization.load_pem_public_key(key_file.read())
-        encrypted_message = public_key.encrypt(
-            message,
-            padding.OAEP(
-                mgf=padding.MGF1(algorithm=hashes.SHA256()),
-                algorithm=hashes.SHA256(),
-                label=None
-                        )
-            )"""
         encrypted_message = self.access_server.encrypt_with_public(message, route_usr_pub)
         to_save = {"Owner": username, "Sender": sender, "message": encrypted_message}
         read_data.append(to_save)
         self.access_server.save_jsons(read_data,'jsones/m_read.json')
         
     def read_messages(self, username):
-        #obtengo clave privada de username
-        """with open(route_usr_prv, "rb") as key_file:
-            private_key = serialization.load_pem_private_key(
-            key_file.read(),
-            password=None,
-        )"""
-        private_key = self.access_server.return_private_key(username)
         messages_list = self.access_server.open_and_return_jsons('jsones/m_read.json')
         if messages_list == []:
             return print("\nYou don't have message in your history.\n")
@@ -252,14 +224,6 @@ class Message():
         if counter == 0:
             return print ("\nYou don't have messages in your history.\n")
         for message in messages:
-            """decrypted_message = private_key.decrypt(
-                message["message"],
-                padding.OAEP(
-                    mgf=padding.MGF1(algorithm=hashes.SHA256()),
-                    algorithm=hashes.SHA256(),
-                    label=None
-                )
-            )"""
             decrypted_message = self.access_server.decrypt_with_private(message["message"], "keys/" + username + "/" + username + "_private_key.pem")
             print("\nMensaje de:", message["Sender"], " :", decrypted_message.decode('utf-8'))
 
