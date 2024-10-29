@@ -89,6 +89,7 @@ class User():
             key_size=4096,
         )
         public_key = private_key.public_key()
+        sign_key = private_key.signing_key()
 
         with open("keys/" + username + "/"+username+"_private_key.pem", "wb") as f:
             f.write(private_key.private_bytes(

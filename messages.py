@@ -71,7 +71,7 @@ class Message():
         
         token = f.encrypt(content.encode("utf-8"))  #ENCRIPTO MENSAJE
         
-        encrypted_simetric_key = public_key.encrypt(  #ENCRIPTO CLAVE SIMETRICA
+        encrypted_simetric_key = public_key.encrypt(  #ENCRIPTO CLAVE SIMETRICA PARA EL RECEPTOR DEL MENSAJE
             key,
             padding.OAEP(
                 mgf=padding.MGF1(algorithm=hashes.SHA256()),
@@ -86,7 +86,7 @@ class Message():
                 key_file.read(),
                 password=None,
             )
-            encrypted_simetric_key = private_key.sign(
+            sign = private_key.sign(
                 encrypted_simetric_key,
                 padding.PSS(
                 mgf=padding.MGF1(hashes.SHA256()),
@@ -95,7 +95,8 @@ class Message():
                 hashes.SHA256()
             )
 
-        encrypted_simetric_key2 = public_key_buyer.encrypt(  #ENCRIPTO CLAVE SIMETRICA2
+
+        encrypted_simetric_key2 = public_key_buyer.encrypt(  #ENCRIPTO CLAVE SIMETRICA2 PARA EL BUYER
             key,
             padding.OAEP(
                 mgf=padding.MGF1(algorithm=hashes.SHA256()),
@@ -103,10 +104,9 @@ class Message():
                 label=None
             )
         )
-
-        content_to_save = {"Sender": buyer, "Receiver":product["seller"], "Key": encrypted_simetric_key }
+        content_to_save = {"Sender": buyer, "Receiver":product["seller"], "Key": encrypted_simetric_key, "sign" : sign }
         keys.append(content_to_save)
-        content_to_save = {"Sender": product["seller"], "Receiver":buyer, "Key": encrypted_simetric_key2 }
+        content_to_save = {"Sender": product["seller"], "Receiver":buyer, "Key": encrypted_simetric_key2, "sign": "" }
         keys.append(content_to_save)
         message = {"Sender": buyer, "Receiver": product["seller"], "message": token.decode()}
         list_messages.append(message)
@@ -147,42 +147,46 @@ class Message():
                 encrypted_message = message["message"]
                 #Coger la clave simetrica de la conversacion
                 conversations = self.access_server.open_and_return_jsons('jsones/simetric_keys.json')
+                sign = ""
                 for item in conversations:
                     if item["Receiver"] == username and message["Sender"] == item["Sender"]:
                         sim_key_encrypted = item["Key"]
-                    try:
-                        sim_key_decrypted = private_key.decrypt(
-                        sim_key_encrypted,
-                        padding.OAEP(
-                            mgf=padding.MGF1(algorithm=hashes.SHA256()),
-                            algorithm=hashes.SHA256(),
-                            label=None
-                            )
-                    )
-                    except ValueError:
-                        #COJO LA PRIVADA DEL SENDER
-                        route = "keys/" + message["Sender"] + "/" + message["Sender"] + "_public_key.pem"
-                        with open(route, "rb") as key_file:
-                            public_key = serialization.load_pem_public_key(
-                            key_file.read()
+                        if item["sign"] != "":
+                            sign = item["sign"]
+                if sign == "":
+                    sim_key_decrypted = private_key.decrypt(
+                    sim_key_encrypted,
+                    padding.OAEP(
+                        mgf=padding.MGF1(algorithm=hashes.SHA256()),
+                        algorithm=hashes.SHA256(),
+                        label=None
                         )
+                )
+                else:
+                    #COJO LA PUBLICA DEL SENDER
+                    route = "keys/" + message["Sender"] + "/" + message["Sender"] + "_public_key.pem"
+                    with open(route, "rb") as key_file:
+                        public_key = serialization.load_pem_public_key(
+                        key_file.read()
+                    )
+                    #VERIFICO
                         public_key.verify(
+                            sign,
                             sim_key_encrypted,
-                            sim_key_almost_decrypted,  # Este es el mensaje firmado
                             padding.PSS(
                                 mgf=padding.MGF1(hashes.SHA256()),
                                 salt_length=padding.PSS.MAX_LENGTH
                             ),
                             hashes.SHA256()
                         )
-                        sim_key_decrypted = private_key.decrypt(
-                        sim_key_almost_decrypted,
-                        padding.OAEP(
-                            mgf=padding.MGF1(algorithm=hashes.SHA256()),
-                            algorithm=hashes.SHA256(),
-                            label=None
-                            )
+                    sim_key_decrypted = private_key.decrypt(
+                    sim_key_encrypted,
+                    padding.OAEP(
+                        mgf=padding.MGF1(algorithm=hashes.SHA256()),
+                        algorithm=hashes.SHA256(),
+                        label=None
                         )
+                    )
 
                 f = Fernet(sim_key_decrypted)
                 token = f.decrypt(encrypted_message.encode("utf-8"))

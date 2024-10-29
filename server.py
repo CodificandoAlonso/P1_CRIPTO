@@ -84,7 +84,6 @@ class Server():
         if buy == "Y":
             number = int(input("Put the product number you want to buy: "))
             self.buy_products(number, username)
-        return print(output)
     
     def add_products(self, username):
         """ with open('jsones/products.json') as products:
@@ -199,3 +198,4 @@ class Server():
     def delete_symetric(self):
         encrypter = ChaCha20Poly1305(self.__key)
         self.create_each_json(encrypter, "simetric_keys.json")
+        self.create_each_json(encrypter, "m_unread.json")
