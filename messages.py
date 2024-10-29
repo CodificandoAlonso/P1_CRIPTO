@@ -39,7 +39,7 @@ class Message():
         else:
             #BUSCAMOS LA CLAVE PRIVADA DE BUYER
             route = "keys/" + buyer + "/" + buyer + "_private_key.pem"
-            with open(route, "rb") as key_file:
+            """with open(route, "rb") as key_file:
                 private_key = serialization.load_pem_private_key(
                     key_file.read(),
                     password=None,
@@ -51,59 +51,64 @@ class Message():
                     algorithm=hashes.SHA256(),
                     label=None
                 )
-                )
-            f = Fernet(decrypted_key)
-            token = f.encrypt(content.encode("utf-8"))  #ENCRIPTO MENSAJE
+                )"""
+            decrypted_key = self.access_server.decrypt_with_private(key, route)
+            """f = Fernet(decrypted_key)
+            token = f.encrypt(content.encode("utf-8"))  #ENCRIPTO MENSAJE"""
+            token = self.access_server.encrypt_with_symetric(content.encode("utf-8"), decrypted_key)
             message = {"Sender": buyer, "Receiver": product["seller"], "message": token.decode()}
             list_messages.append(message)
             return self.access_server.save_jsons(list_messages,'jsones/m_unread.json')
             
         
         #Obtenemos la clave publica de product["seller"]
-        route = "keys/" + product["seller"] + "/" + product["seller"] + "_public_key.pem"
-        with open(route, "rb") as key_file:
-            public_key = serialization.load_pem_public_key(key_file.read())
-        
+        route_seller = "keys/" + product["seller"] + "/" + product["seller"] + "_public_key.pem"
         #Obtenemos la clave publica de buyer
-        route = "keys/" + buyer + "/" + buyer + "_public_key.pem"
+        """route = "keys/" + buyer + "/" + buyer + "_public_key.pem"
         with open(route, "rb") as key_file:
-            public_key_buyer = serialization.load_pem_public_key(key_file.read())
+            public_key_buyer = serialization.load_pem_public_key(key_file.read())"""
         
-        token = f.encrypt(content.encode("utf-8"))  #ENCRIPTO MENSAJE
-        
-        encrypted_simetric_key = public_key.encrypt(  #ENCRIPTO CLAVE SIMETRICA PARA EL RECEPTOR DEL MENSAJE
+        #token = f.encrypt(content.encode("utf-8"))  #ENCRIPTO MENSAJE
+        token = self.access_server.encrypt_with_symetric(content.encode("utf-8"), key)
+        """encrypted_simetric_key = public_key.encrypt(  #ENCRIPTO CLAVE SIMETRICA PARA EL RECEPTOR DEL MENSAJE
             key,
             padding.OAEP(
                 mgf=padding.MGF1(algorithm=hashes.SHA256()),
                 algorithm=hashes.SHA256(),
                 label=None
             )
-        )
+        )"""
+        encrypted_simetric_key = self.access_server.encrypt_with_public(key, route_seller)
         #COMO ES LA PRIMERA VEZ, ENCRIPTO TMB ESTO CON LA PRIVADA DE BUYER 
-        route = "keys/" + buyer + "/" + buyer + "_private_key.pem"
+        """route = "keys/" + buyer + "/" + buyer + "_private_key.pem"
         with open(route, "rb") as key_file:
             private_key = serialization.load_pem_private_key(
                 key_file.read(),
                 password=None,
-            )
-            sign = private_key.sign(
-                encrypted_simetric_key,
-                padding.PSS(
-                mgf=padding.MGF1(hashes.SHA256()),
-                salt_length=padding.PSS.MAX_LENGTH
-                                                    ),
-                hashes.SHA256()
-            )
+            )"""
+        """
+        sign = private_key.sign(
+            encrypted_simetric_key,
+            padding.PSS(
+            mgf=padding.MGF1(hashes.SHA256()),
+            salt_length=padding.PSS.MAX_LENGTH
+                                                ),
+            hashes.SHA256()
+        )"""
+        route_buyer = "keys/" + buyer + "/" + buyer + "_private_key.pem"
+        route_buyer_pub = "keys/" + buyer + "/" + buyer + "_public_key.pem"
+        sign = self.access_server.sign_with_private(encrypted_simetric_key, route_buyer)
 
 
-        encrypted_simetric_key2 = public_key_buyer.encrypt(  #ENCRIPTO CLAVE SIMETRICA2 PARA EL BUYER
+        """encrypted_simetric_key2 = public_key_buyer.encrypt(  #ENCRIPTO CLAVE SIMETRICA2 PARA EL BUYER
             key,
             padding.OAEP(
                 mgf=padding.MGF1(algorithm=hashes.SHA256()),
                 algorithm=hashes.SHA256(),
                 label=None
             )
-        )
+        )"""
+        encrypted_simetric_key2 = self.access_server.encrypt_with_public(key, route_buyer_pub)
         content_to_save = {"Sender": buyer, "Receiver":product["seller"], "Key": encrypted_simetric_key, "sign" : sign }
         keys.append(content_to_save)
         content_to_save = {"Sender": product["seller"], "Receiver":buyer, "Key": encrypted_simetric_key2, "sign": "" }
@@ -209,9 +214,10 @@ class Message():
         #tenemos que encriptar el mensaje con la clave publica del usuario,
         #como si se enviara a si mismo, para que solo el tenga acceso al historial
         #Coger la clave privada del usuario para desencriptar
-        route = "keys/" + username + "/" + username + "_public_key.pem"
+        route_usr_pub = "keys/" + username + "/" + username + "_public_key.pem"
         message = message.encode("utf-8")
-        with open(route, "rb") as key_file:
+
+        """with open(route_usr_pub, "rb") as key_file:
             public_key = serialization.load_pem_public_key(key_file.read())
         encrypted_message = public_key.encrypt(
             message,
@@ -220,19 +226,20 @@ class Message():
                 algorithm=hashes.SHA256(),
                 label=None
                         )
-            )
+            )"""
+        encrypted_message = self.access_server.encrypt_with_public(message, route_usr_pub)
         to_save = {"Owner": username, "Sender": sender, "message": encrypted_message}
         read_data.append(to_save)
         self.access_server.save_jsons(read_data,'jsones/m_read.json')
         
     def read_messages(self, username):
         #obtengo clave privada de username
-        route = "keys/" + username + "/" + username + "_private_key.pem"
-        with open(route, "rb") as key_file:
+        """with open(route_usr_prv, "rb") as key_file:
             private_key = serialization.load_pem_private_key(
             key_file.read(),
             password=None,
-        )
+        )"""
+        private_key = self.access_server.return_private_key(username)
         messages_list = self.access_server.open_and_return_jsons('jsones/m_read.json')
         if messages_list == []:
             return print("\nYou don't have message in your history.\n")
@@ -245,14 +252,15 @@ class Message():
         if counter == 0:
             return print ("\nYou don't have messages in your history.\n")
         for message in messages:
-            decrypted_message = private_key.decrypt(
+            """decrypted_message = private_key.decrypt(
                 message["message"],
                 padding.OAEP(
                     mgf=padding.MGF1(algorithm=hashes.SHA256()),
                     algorithm=hashes.SHA256(),
                     label=None
                 )
-            )
+            )"""
+            decrypted_message = self.access_server.decrypt_with_private(message["message"], "keys/" + username + "/" + username + "_private_key.pem")
             print("\nMensaje de:", message["Sender"], " :", decrypted_message.decode('utf-8'))
 
         
@@ -267,24 +275,26 @@ class Message():
 
         #Coger la clave privada del usuario para desencriptar
         route = "keys/" + sender + "/" + sender + "_private_key.pem"
-        with open(route, "rb") as key_file:
+        """with open(route, "rb") as key_file:
             private_key = serialization.load_pem_private_key(key_file.read()
-                                                             ,password=None)
+                                                             ,password=None)"""
 
         for participant in keys:
             if participant["Receiver"] == message["Receiver"] and participant["Sender"] == message["Sender"]:
                 key = participant["Key"]
 
-        symetric_key = private_key.decrypt(   #DESENCRIPTAMOS CLAVE SIMETRICA
+        """symetric_key = private_key.decrypt(   #DESENCRIPTAMOS CLAVE SIMETRICA
             key,
             padding.OAEP(
                 mgf=padding.MGF1(algorithm=hashes.SHA256()),
                 algorithm=hashes.SHA256(),
                 label=None
             )
-            )
-        f = Fernet(symetric_key)
-        token = f.encrypt(content.encode("utf-8"))
+            )"""
+        symetric_key = self.access_server.decrypt_with_private(key, route)
+        """f = Fernet(symetric_key)
+        token = f.encrypt(content.encode("utf-8"))"""
+        token = self.access_server.encrypt_with_symetric(content.encode("utf-8"), symetric_key)
         message = {"Sender": sender, "Receiver": message["Sender"], "message": token.decode()}
         list_messages.append(message)
         self.access_server.save_jsons(list_messages,'jsones/m_unread.json')

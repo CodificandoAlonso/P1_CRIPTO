@@ -5,6 +5,8 @@ from cryptography.fernet import Fernet
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 from cryptography.hazmat.primitives.ciphers.aead import ChaCha20Poly1305
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric import rsa, padding
 from messages import Message
 
 
@@ -110,7 +112,6 @@ class Server():
         product = products[number]
         print(product["seller"], product["name"])
         if input("Is this the product you want? Type Y/N: ")== "Y":
-            print("Enviando tu mensaje jueputa")
             self.message.send_messages(product,username)
 
     
@@ -199,3 +200,72 @@ class Server():
         encrypter = ChaCha20Poly1305(self.__key)
         self.create_each_json(encrypter, "simetric_keys.json")
         self.create_each_json(encrypter, "m_unread.json")
+
+
+
+    def sign_with_private(self, message, private_key_route):
+        with open(private_key_route, "rb") as key_file:
+            private_key = serialization.load_pem_private_key(
+                key_file.read(),
+                password=None,
+            )
+        return private_key.sign(
+            message,
+            padding.PSS(
+                mgf=padding.MGF1(hashes.SHA256()),
+                salt_length=padding.PSS.MAX_LENGTH
+            ),
+            hashes.SHA256()
+        )
+
+    def decrypt_with_private(self, encrypted, private_key_route):
+        with open(private_key_route, "rb") as key_file:
+            private_key = serialization.load_pem_private_key(
+                key_file.read(),
+                password=None,
+            )
+        print("\n[DEBUG] Decrypting keys with private key method RSA with key length 4096\n")
+        return private_key.decrypt(
+            encrypted,
+            padding.OAEP(
+                mgf=padding.MGF1(algorithm=hashes.SHA256()),
+                algorithm=hashes.SHA256(),
+                label=None
+            )
+        )
+    def encrypt_with_public(self, message, public_key_route):
+        with open(public_key_route, "rb") as key_file:
+            public_key = serialization.load_pem_public_key(
+                key_file.read()
+            )
+        print("\n[DEBUG] Encrypting keys with public receiver key method RSA with key length 4096\n")
+        return public_key.encrypt(
+            message,
+            padding.OAEP(
+                mgf=padding.MGF1(algorithm=hashes.SHA256()),
+                algorithm=hashes.SHA256(),
+                label=None
+            )
+        )
+    
+    def encrypt_with_symetric(self, message, symetric_key):
+        encrypter = Fernet(symetric_key)
+        print("\n[DEBUG] Encrypting Message with symetric key method Fernet\n")
+        return encrypter.encrypt(message)
+    
+    def decrypt_with_symetric(self, encrypted, symetric_key):
+        encrypter = Fernet(symetric_key)
+        print("\n[DEBUG] Decrypting Message with symetric key method Fernet\n")
+        return encrypter.decrypt(encrypted)
+    
+    def return_public_key(self, username):
+        with open("keys/" + username + "/"+username+"_public_key.pem", "rb") as f:
+            return f.read()
+        
+    def return_private_key(self, username):
+        with open("keys/" + username + "/"+username+"_private_key.pem", "rb") as f:
+            private_key = serialization.load_pem_private_key(
+                f.read(),
+                password=None,
+            )
+            return private_key
