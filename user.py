@@ -55,15 +55,6 @@ class User():
 
 
     def save_user(self, username, password):
-        """try:
-            with open('jsones/users.json', 'r', encoding='utf-8') as file:
-                try:
-                    users = json.load(file)
-                except json.JSONDecodeError:
-                    users = []
-        except FileNotFoundError:
-            users = []"""
-        
         users = self.access_server.open_and_return_jsons('jsones/users.json')
         password = password.encode("utf-8")
         salt = os.urandom(16)
@@ -73,6 +64,7 @@ class User():
             salt=salt,
             iterations=480000,
         )
+        print("\n[DEBUG] Encrypting password using PBKDF2HMAC\n")
         key = base64.urlsafe_b64encode(kdf.derive(password))
         users.append({'username': username, 'token': str(key), 'id':str(salt)})
         self.access_server.save_jsons(users,'jsones/users.json')
@@ -89,7 +81,6 @@ class User():
             key_size=4096,
         )
         public_key = private_key.public_key()
-        sign_key = private_key.signing_key()
 
         with open("keys/" + username + "/"+username+"_private_key.pem", "wb") as f:
             f.write(private_key.private_bytes(

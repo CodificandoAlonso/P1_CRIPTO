@@ -7,7 +7,7 @@ import os, shutil
 
 class App():
     def __init__(self):
-        print('Welcome to the app, if anytime you want to exit, press Ctrl + C.\n While you are logged in, if you press Ctrl + E, you will be logged out\n "[DEBUG] THIS DATABASES AND THE DATA ARE BEING PROTECTED WITH ChaCha20Poly1305\n')
+        print('Welcome to the app, if anytime you want to exit, press Ctrl + C.\n [DEBUG] THIS DATABASES AND THE DATA ARE BEING PROTECTED WITH ChaCha20Poly1305\n')
         self.logged = False
         self.server = Server()
         self.message = Message(self.server)
@@ -44,7 +44,7 @@ class App():
                     self.handle_user_actions()
             except KeyboardInterrupt:
                 self.server.delete_symetric()
-                print('Goodbye')
+                print('\nGoodbye')
                 break
     
     def handle_user_actions(self):

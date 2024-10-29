@@ -23,7 +23,6 @@ class Server():
             self.__key = self.get_key(server_dir)
             self.create_jsones()
         self.__key = self.get_key(server_dir)
-        print(self.__key)
 
 
 
@@ -37,8 +36,7 @@ class Server():
                 if user['username'] == username :
                     return True
             return False"""
-        data = self.open_and_return_jsons('jsones/users.json')
-        print(data)
+        data = self.open_and_return_jsons('jsones/users.json')      
         for users in data:
             if users['username'] == username :
                     return True
@@ -46,8 +44,6 @@ class Server():
         
 
     def check_password(self,username, password):
-        """with open('jsones/users.json') as users:
-            data = json.load(users)"""
         users = self.open_and_return_jsons('jsones/users.json')
         for user in users:
             if user["username"] == username:
@@ -60,7 +56,7 @@ class Server():
                 iterations=480000,
                 )
 
-                
+                print("\n[DEBUG] Encrypting password using PBKDF2HMAC\n")
                 key = base64.urlsafe_b64encode(kdf.derive(password))
                 prevtoken = eval(user["token"])
                 if key == prevtoken:
@@ -88,26 +84,14 @@ class Server():
             self.buy_products(number, username)
     
     def add_products(self, username):
-        """ with open('jsones/products.json') as products:
-            try:
-                data = json.load(products)
-            except json.JSONDecodeError:
-                data = []"""
         products = self.open_and_return_jsons('jsones/products.json')
         name = input("Enter the name of the product: ")
         price = input("Enter the price of the product: ")
         products.append({"name": name, "price": price, "seller": username})
-        """with open('jsones/products.json', 'w', encoding='utf-8') as file:
-            json.dump(data, file, indent=4)"""
         self.save_jsons(products, 'jsones/products.json')
         return print("Product added")
         
     def buy_products(self, number, username):
-        """with open('jsones/products.json') as products:
-            try:
-                data = json.load(products)
-            except json.JSONDecodeError:
-                print("There are no products to buy")"""
         products = self.open_and_return_jsons('jsones/products.json')
         product = products[number]
         print(product["seller"], product["name"])
@@ -151,7 +135,7 @@ class Server():
 
 
     def create_jsones(self):
-        """users    products    m_unread     m_read"""
+        """users    products    m_unread     m_read    simetric_keys"""
         encrypter = ChaCha20Poly1305(self.__key)
         self.create_each_json(encrypter, "users.json")
         self.create_each_json(encrypter, "products.json")
