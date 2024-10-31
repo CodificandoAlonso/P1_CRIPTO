@@ -90,7 +90,7 @@ class Message():
         if input("You have " + str(counter) + " new messages. Do you want to read them? Type Y/N: ") == "Y":                
             route = "keys/" + username + "/" + username + "_private_key.pem"
 
-            private_key = self.access_server.return_private_key(username)
+            #private_key = self.access_server.return_private_key(username)
             new_unread = []
             for message in messages:
                 encrypted_message = message["message"]
@@ -103,14 +103,9 @@ class Message():
                         if item["sign"] != "":
                             sign = item["sign"]
                 if sign == "":
-                    sim_key_decrypted = private_key.decrypt(
-                    sim_key_encrypted,
-                    padding.OAEP(
-                        mgf=padding.MGF1(algorithm=hashes.SHA256()),
-                        algorithm=hashes.SHA256(),
-                        label=None
-                        )
-                )
+                    #COJO LA PUBLICA DEL SENDER SIN FIRMAR
+                    sim_key_decrypted = self.access_server.decrypt_with_private(sim_key_encrypted, route)
+                
                 else:
                     #COJO LA PUBLICA DEL SENDER
                     route_sender_pub = "keys/" + message["Sender"] + "/" + message["Sender"] + "_public_key.pem"

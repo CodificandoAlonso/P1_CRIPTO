@@ -30,12 +30,6 @@ class Server():
 
 
     def check_username(self,username):
-        """with open('jsones/users.json') as users:
-            data = json.load(users)
-            for user in data:
-                if user['username'] == username :
-                    return True
-            return False"""
         data = self.open_and_return_jsons('jsones/users.json')      
         for users in data:
             if users['username'] == username :
