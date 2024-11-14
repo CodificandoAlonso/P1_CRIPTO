@@ -8,6 +8,7 @@ from cryptography.hazmat.primitives.ciphers.aead import ChaCha20Poly1305
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa, padding
 from messages import Message
+from cryptography.hazmat.primitives import hashes, hmac
 
 
 class Server():
@@ -19,6 +20,7 @@ class Server():
         para desencriptar los jsones y creamos los jsones encriptados"""  
         if not os.path.isdir(server_dir):
             os.makedirs(server_dir, exist_ok=True)
+            self.create_pepe_keys(server_dir)
             self.create_key(server_dir)
             self.__key = self.get_key(server_dir)
             self.create_jsones()
@@ -115,11 +117,15 @@ class Server():
     def create_key(self,route):
         try:
             with open(route + "/key.bin", 'wb') as key_file:
-                key = ChaCha20Poly1305.generate_key()
-                key_file.write(key)
+                pass
         except FileNotFoundError:
             key = ChaCha20Poly1305.generate_key()
-            key_file.write(key)
+            key_has = os.urandom(16)
+            h = hmac.HMAC(key_has, hashes.SHA256())
+            h.update(key)
+            signed_hash = self.sign_with_private(h, route + "Server_private_key.pem")
+            total_encrypt = self.encrypt_with_public(h+signed_hash, route+"Server_public_key.pem")
+            key_file.write(total_encrypt)
 
             
     def get_key(self, route):
@@ -262,3 +268,22 @@ class Server():
                 password=None,
             )
             return private_key
+        
+
+    def create_pepe_keys(self, route):
+        private_key = rsa.generate_private_key(
+                public_exponent=65537,
+                key_size=4096,
+            )
+        public_key = private_key.public_key()
+        with open(route + "/Server_private_key.pem", "wb") as f:
+            f.write(private_key.private_bytes(
+                encoding=serialization.Encoding.PEM,
+                format=serialization.PrivateFormat.TraditionalOpenSSL,
+                encryption_algorithm=serialization.NoEncryption(),
+            ))
+        with open(route + "/Server_public_key.pem", "wb") as f:
+            f.write(public_key.public_bytes(
+                encoding=serialization.Encoding.PEM,
+                format=serialization.PublicFormat.SubjectPublicKeyInfo,
+            ))
