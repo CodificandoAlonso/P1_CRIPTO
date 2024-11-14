@@ -120,16 +120,29 @@ class Server():
                 pass
         except FileNotFoundError:
             key = ChaCha20Poly1305.generate_key()
-            key_has = os.urandom(16)
-            h = hmac.HMAC(key_has, hashes.SHA256())
+            key_hash = os.urandom(16)
+            h = hmac.HMAC(key_hash, hashes.SHA256())
             h.update(key)
+            h = h.finalize()
             signed_hash = self.sign_with_private(h, route + "Server_private_key.pem")
-            total_encrypt = self.encrypt_with_public(h+signed_hash, route+"Server_public_key.pem")
+            total_encrypt = self.encrypt_with_public(key+signed_hash + key_hash, route+"Server_public_key.pem")
             key_file.write(total_encrypt)
 
             
     def get_key(self, route):
         with open(route + "/key.bin", 'rb') as key_file:
+            all_data = self.decrypt_with_private(key_file)
+            key_hash = all_data[-16:-1]
+            hashed_key = self.verify_with_public(all_data[256:-17])
+            
+
+
+
+
+
+
+
+
             return key_file.read()
         
 
