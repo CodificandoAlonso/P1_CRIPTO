@@ -120,11 +120,12 @@ class Server():
         h = hmac.HMAC(key_hash, hashes.SHA256())
         h.update(key)
         h = h.finalize()
-        print("Hash antes:", h)
+        print("Hash antes:", h, "\nLongitud hash antes: ", len(h))
         signed_hash = self.sign_with_private(h, route + "/Server_private_key.pem")
-        print("Signed hash: ", signed_hash)
+        
         signed_hash_1 = signed_hash[0:255]
-        signed_hash_2 = signed_hash[256:]
+        signed_hash_2 = signed_hash[255:]
+        print("Signed hash antes: ", signed_hash_1 + signed_hash_2, "\nLongitud signed hash antes: ", len(signed_hash_1 + signed_hash_2))
         encrypted_key = self.encrypt_with_public(key + key_hash, route+"/Server_public_key.pem")
         encrypted_sign_1 = self.encrypt_with_public(signed_hash_1, route+"/Server_public_key.pem")
         encrypted_sign_2 = self.encrypt_with_public(signed_hash_2, route+"/Server_public_key.pem")
@@ -144,15 +145,12 @@ class Server():
             key = simetric_hash[0:-16]
             token = simetric_hash[-16:]
             
-            
-            
-
             key_hash = token
             h = hmac.HMAC(key_hash, hashes.SHA256())
             h.update(key)
             h = h.finalize()
-            print("Hash despues: ", h)
-            print("Firma despues: ", sign_1 + sign_2)
+            print("Hash despues: ", h, "\nLongitud de has despues: ", len(h))
+            print("Firma despues: ", sign_1 + sign_2, "\nLongitud de hash despues: ", len(sign_1 + sign_2))
             self.verify_with_public(sign_1 + sign_2, h, route + "/Server_public_key.pem")
 
 
@@ -250,7 +248,7 @@ class Server():
                 key_file.read(),
                 password=None,
             )
-        print("\n[DEBUG] Decrypting keys with private key method RSA with key length 4096\n")
+        #print("\n[DEBUG] Decrypting keys with private key method RSA with key length 4096\n")
         return private_key.decrypt(
             encrypted,
             padding.OAEP(
@@ -264,7 +262,7 @@ class Server():
             public_key = serialization.load_pem_public_key(
                 key_file.read()
             )
-        print("\n[DEBUG] Encrypting keys with public key method RSA with key length 4096\n")
+        #print("\n[DEBUG] Encrypting keys with public key method RSA with key length 4096\n")
         return public_key.encrypt(
             message,
             padding.OAEP(
