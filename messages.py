@@ -1,9 +1,5 @@
 from cryptography.fernet import Fernet
 
-import getpass
-import json
-import base64
-import os
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 from cryptography.hazmat.primitives import serialization
@@ -42,6 +38,8 @@ class Message():
             return self.access_server.save_jsons(list_messages,'jsones/m_unread.json')
             
         
+
+
         route_seller = "keys/" + product["seller"] + "/" + product["seller"] + "_public_key.pem"
         #ENCRIPTO MENSAJE
         token = self.access_server.encrypt_with_symetric(content.encode("utf-8"), key)
