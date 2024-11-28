@@ -8,6 +8,7 @@ from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa, padding
 from messages import Message
 from cryptography.hazmat.primitives import hashes, hmac
+from Certificate_FASA import All_Certificates
 
 
 class Server():
@@ -23,6 +24,7 @@ class Server():
             self.create_key(server_dir)
             self.__key = self.get_key(server_dir)
             self.create_jsones()
+            self.create_certificates()
         self.__key = self.get_key(server_dir)
 
 
@@ -177,6 +179,11 @@ class Server():
             
             users = encrypter.encrypt(nonce,json_str.encode('utf-8'), None)
             file.write(nonce + users)
+
+
+    def create_certificates(self):
+        All_Certificates()
+
 
 
 

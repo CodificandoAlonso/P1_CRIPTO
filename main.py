@@ -16,7 +16,7 @@ class App():
     def signup(self):
         username = input('Enter username: ')
         password = getpass.getpass('Enter password: ')
-        user = User(username, password, self.server)
+        User(username, password, self.server)
 
 
     def login(self):
