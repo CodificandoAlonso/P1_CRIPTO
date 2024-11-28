@@ -284,3 +284,66 @@ class All_Certificates():
             f.write(self.certificate_CSSA.public_bytes(serialization.Encoding.PEM))
 
 
+    def create_certificate_CSSA(self, username, country):
+        subject = x509.Name([
+     x509.NameAttribute(x509.NameOID.COUNTRY_NAME, "ES"),
+    x509.NameAttribute(x509.NameOID.STATE_OR_PROVINCE_NAME, country),
+     x509.NameAttribute(x509.NameOID.LOCALITY_NAME, "MADRID"),
+     x509.NameAttribute(x509.NameOID.ORGANIZATION_NAME, username),
+])
+        with open("keys/" + username + "/"+username+"_public_key.pem", "rb") as f:
+            user_public =  f.read()
+        ee_cert = x509.CertificateBuilder().subject_name(
+            subject
+        ).issuer_name(
+            self.subject_CSSA
+        ).public_key(
+            user_public
+        ).serial_number(
+            x509.random_serial_number()
+        ).not_valid_before(
+            datetime.datetime.now(datetime.timezone.utc)
+        ).not_valid_after(
+            # Our cert will be valid for 10 days
+            datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(days=10)
+        ).add_extension(
+            x509.SubjectAlternativeName([
+                # Describe what sites we want this certificate for.
+                x509.DNSName("cryptography.io"),
+                x509.DNSName("www.cryptography.io"),
+            ]),
+            critical=False,
+        ).add_extension(
+            x509.BasicConstraints(ca=False, path_length=None),
+            critical=True,
+        ).add_extension(
+            x509.KeyUsage(
+                digital_signature=True,
+                content_commitment=False,
+                key_encipherment=True,
+                data_encipherment=False,
+                key_agreement=False,
+                key_cert_sign=False,
+                crl_sign=True,
+                encipher_only=False,
+                decipher_only=False,
+            ),
+            critical=True,
+        ).add_extension(
+            x509.ExtendedKeyUsage([
+                x509.ExtendedKeyUsageOID.CLIENT_AUTH,
+                x509.ExtendedKeyUsageOID.SERVER_AUTH,
+            ]),
+            critical=False,
+        ).add_extension(
+            x509.SubjectKeyIdentifier.from_public_key(user_public),
+            critical=False,
+        ).add_extension(
+            x509.AuthorityKeyIdentifier.from_issuer_subject_key_identifier(
+                self.certificate_CSSA.extensions.get_extension_for_class(x509.SubjectKeyIdentifier).value
+            ),
+            critical=False,
+        ).sign(self.__private_key_CSSA, hashes.SHA256())
+
+        with open("keys/" + username + "/"+username+"_cert.pem", "wb") as f:
+            f.write(ee_cert.public_bytes(serialization.Encoding.PEM))

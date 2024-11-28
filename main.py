@@ -15,8 +15,9 @@ class App():
 
     def signup(self):
         username = input('Enter username: ')
+        country = input('Enter country(Spain or Netherlands): ')
         password = getpass.getpass('Enter password: ')
-        User(username, password, self.server)
+        User(username, country, password, self.server)
 
 
     def login(self):

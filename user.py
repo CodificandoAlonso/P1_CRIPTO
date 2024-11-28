@@ -13,13 +13,14 @@ from server import Server
 
 
 class User():
-    def __init__(self, username, password, server):
+    def __init__(self, username, country, password, server):
         self.access_server = server
         self.__username = self.validate_user(username)
         self.__password = self.validate_password(password)
-        
-        self.save_user(self.__username, self.__password)
+        self.__country = self.validate_country(country)
         self.generate_keys(self.__username)
+        self.save_user(self.__username, self.__country ,self.__password)
+
 
     
 
@@ -51,10 +52,16 @@ class User():
             print('Passwords do not match')
             password = getpass.getpass('Enter password again: ')
         return password
+    
+    def validate_country(self, country):
+        while country != 'Spain' and country != 'Netherlands':
+            print('Country must be either Spain or Netherlands, if you aren not from any of these countries, choose one of them.')
+            country = input('Enter country again: ')
+        return country
 
 
 
-    def save_user(self, username, password):
+    def save_user(self, username, country, password):
         users = self.access_server.open_and_return_jsons('jsones/users.json')
         password = password.encode("utf-8")
         salt = os.urandom(16)
@@ -66,8 +73,9 @@ class User():
         )
         print("\n[DEBUG] Encrypting password using PBKDF2HMAC\n")
         key = base64.urlsafe_b64encode(kdf.derive(password))
-        users.append({'username': username, 'token': str(key), 'id':str(salt)})
+        users.append({'username': username, 'country' : country, 'token': str(key), 'id':str(salt)})
         self.access_server.save_jsons(users,'jsones/users.json')
+        self.access_server.expedite_certificate(username, country)
         
 
 

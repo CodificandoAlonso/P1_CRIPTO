@@ -24,7 +24,8 @@ class Server():
             self.create_key(server_dir)
             self.__key = self.get_key(server_dir)
             self.create_jsones()
-            self.create_certificates()
+            self.certificates = self.create_certificates()
+            
         self.__key = self.get_key(server_dir)
 
 
@@ -53,7 +54,6 @@ class Server():
                 iterations=480000,
                 )
 
-                print("\n[DEBUG] Encrypting password using PBKDF2HMAC\n")
                 key = base64.urlsafe_b64encode(kdf.derive(password))
                 prevtoken = eval(user["token"])
                 if key == prevtoken:
@@ -121,12 +121,10 @@ class Server():
         h = hmac.HMAC(key_hash, hashes.SHA256())
         h.update(key)
         h = h.finalize()
-        print("Hash antes:", h, "\nLongitud hash antes: ", len(h))
         signed_hash = self.sign_with_private(h, route + "/Server_private_key.pem")
         
         signed_hash_1 = signed_hash[0:255]
         signed_hash_2 = signed_hash[255:]
-        print("Signed hash antes: ", signed_hash_1 + signed_hash_2, "\nLongitud signed hash antes: ", len(signed_hash_1 + signed_hash_2))
         encrypted_key = self.encrypt_with_public(key + key_hash, route+"/Server_public_key.pem")
         encrypted_sign_1 = self.encrypt_with_public(signed_hash_1, route+"/Server_public_key.pem")
         encrypted_sign_2 = self.encrypt_with_public(signed_hash_2, route+"/Server_public_key.pem")
@@ -150,12 +148,8 @@ class Server():
             h = hmac.HMAC(key_hash, hashes.SHA256())
             h.update(key)
             h = h.finalize()
-            print("Hash despues: ", h, "\nLongitud de has despues: ", len(h))
-            print("Firma despues: ", sign_1 + sign_2, "\nLongitud de hash despues: ", len(sign_1 + sign_2))
             self.verify_with_public(sign_1 + sign_2, h, route + "/Server_public_key.pem")
 
-
-            print("Todo ok ijueputa")
             return key
         
 
@@ -182,7 +176,7 @@ class Server():
 
 
     def create_certificates(self):
-        All_Certificates()
+        return All_Certificates()
 
 
 
@@ -280,12 +274,10 @@ class Server():
     
     def encrypt_with_symetric(self, message, symetric_key):
         encrypter = Fernet(symetric_key)
-        print("\n[DEBUG] Encrypting Message with symetric key method Fernet\n")
         return encrypter.encrypt(message)
     
     def decrypt_with_symetric(self, encrypted, symetric_key):
         encrypter = Fernet(symetric_key)
-        print("\n[DEBUG] Decrypting Message with symetric key method Fernet\n")
         return encrypter.decrypt(encrypted)
     
     def return_public_key(self, username):
@@ -318,3 +310,10 @@ class Server():
                 encoding=serialization.Encoding.PEM,
                 format=serialization.PublicFormat.SubjectPublicKeyInfo,
             ))
+
+    def expedite_certificate(self, username, country):
+        if country == "Spain":
+            self.certificates.create_certificate_CSSA(username, country)
+
+        else:
+            self.certificates.create_certificate_MVSA(username, country)
