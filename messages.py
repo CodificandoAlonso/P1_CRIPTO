@@ -1,10 +1,6 @@
 from cryptography.fernet import Fernet
-
-from cryptography.hazmat.primitives import hashes
-from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
-from cryptography.hazmat.primitives import serialization
-from cryptography.hazmat.primitives.asymmetric import rsa, padding
-from cryptography.exceptions import InvalidKey
+import os
+from cryptography.hazmat.primitives import hashes,hmac
 
 
 class Message():
@@ -23,41 +19,62 @@ class Message():
         for participant in keys:
             if participant["Receiver"] == buyer and participant["Sender"] == product["seller"]:
                 key = participant["Key"]
+
         if key == 0: #NO COMUNICACION
             key = Fernet.generate_key()
-            f = Fernet(key)
         else:
-            #BUSCAMOS LA CLAVE PRIVADA DE BUYER
-            route = "keys/" + buyer + "/" + buyer + "_private_key.pem"
-            #DESENCRIPTAMOS LA CLAVE SIMETRICA
-            decrypted_key = self.access_server.decrypt_with_private(key, route)
-            #ENCRIPTAMOS EL MENSAJE
-            token = self.access_server.encrypt_with_symetric(content.encode("utf-8"), decrypted_key)
-            message = {"Sender": buyer, "Receiver": product["seller"], "message": token.decode()}
-            list_messages.append(message)
+            simetric_hash = self.access_server.decrypt_with_private(key[0:512],route)
+            sign_1 = self.access_server.decrypt_with_private(key[512:1024],route)
+            sign_2 = self.access_server.decrypt_with_private(key[1024:],route)
+            
+            sim_key_decrypted = simetric_hash[0:-16]
+            token = simetric_hash[-16:]
+            
+            key_hash = token
+            h = hmac.HMAC(key_hash, hashes.SHA256())
+            h.update(sim_key_decrypted)
+            h = h.finalize()
+            self.access_server.verify_with_public(sign_1 + sign_2, h, "keys/" + message["Sender"] + "/" + message["Sender"] + "_public_key.pem")
+            token = self.access_server.encrypt_with_symetric(content.encode("utf-8"), sim_key_decrypted)
+            list_messages.append({"Sender": buyer, "Receiver": product["seller"], "message": token.decode()})
             return self.access_server.save_jsons(list_messages,'jsones/m_unread.json')
             
         
 
-
         route_seller = "keys/" + product["seller"] + "/" + product["seller"] + "_public_key.pem"
-        #ENCRIPTO MENSAJE
-        token = self.access_server.encrypt_with_symetric(content.encode("utf-8"), key)
-        #ENCRIPTO LA CLAVE SIMETRICA CON LA PUBLICA DE SELLER
-        encrypted_simetric_key = self.access_server.encrypt_with_public(key, route_seller)
-        #COMO ES LA PRIMERA VEZ, ENCRIPTO TMB ESTO CON LA PRIVADA DE BUYER 
 
-        route_buyer = "keys/" + buyer + "/" + buyer + "_private_key.pem"
+        #ENCRIPTO MENSAJE
+
+        token = self.access_server.encrypt_with_symetric(content.encode("utf-8"), key)
+
+        #ENCRIPTO LA CLAVE SIMETRICA CON LA PUBLICA DE SELLER
+        route = "keys/" + buyer + "/" + buyer + "_private_key.pem"
+        key_hash = os.urandom(16)
+        h = hmac.HMAC(key_hash, hashes.SHA256())
+        h.update(key)
+        h = h.finalize()
+        signed_hash = self.access_server.sign_with_private(h, route)
+        
+        signed_hash_1 = signed_hash[0:255]
+        signed_hash_2 = signed_hash[255:]
+
+
+
+
+        encrypted_simetric_key_1 = self.access_server.encrypt_with_public(key + key_hash, route_seller)
+        encrypted_simetric_key_2 = self.access_server.encrypt_with_public(signed_hash_1, route_seller)
+        encrypted_simetric_key_3 = self.access_server.encrypt_with_public(signed_hash_2, route_seller)
+
+        #BUSCAMOS LA CLAVE PUBLICA DE BUYER
         route_buyer_pub = "keys/" + buyer + "/" + buyer + "_public_key.pem"
-        #FIRMO LA CLAVE SIMETRICA ENCRIPTADA
-        sign = self.access_server.sign_with_private(encrypted_simetric_key, route_buyer)
+
         #ENCRIPTO LA CLAVE SIMETRICA CON LA PUBLICA DE BUYER
-        encrypted_simetric_key2 = self.access_server.encrypt_with_public(key, route_buyer_pub)
+
         
         #GUARDO
-        content_to_save = {"Sender": buyer, "Receiver":product["seller"], "Key": encrypted_simetric_key, "sign" : sign }
+        content_to_save = {"Sender": buyer, "Receiver":product["seller"], "Key": encrypted_simetric_key_1 + encrypted_simetric_key_2 + encrypted_simetric_key_3}
         keys.append(content_to_save)
-        content_to_save = {"Sender": product["seller"], "Receiver":buyer, "Key": encrypted_simetric_key2, "sign": "" }
+        content_to_save = {"Sender": product["seller"], "Receiver":buyer, "Key": "WAITING FOR RESPONSE"}
         keys.append(content_to_save)
         message = {"Sender": buyer, "Receiver": product["seller"], "message": token.decode()}
         list_messages.append(message)
@@ -94,21 +111,41 @@ class Message():
                 encrypted_message = message["message"]
                 #Coger la clave simetrica de la conversacion
                 conversations = self.access_server.open_and_return_jsons('jsones/simetric_keys.json')
-                sign = ""
                 for item in conversations:
                     if item["Receiver"] == username and message["Sender"] == item["Sender"]:
                         sim_key_encrypted = item["Key"]
-                        if item["sign"] != "":
-                            sign = item["sign"]
-                if sign == "":
-                    #COJO LA PUBLICA DEL SENDER SIN FIRMAR
-                    sim_key_decrypted = self.access_server.decrypt_with_private(sim_key_encrypted, route)
-                
-                else:
-                    #COJO LA PUBLICA DEL SENDER
-                    route_sender_pub = "keys/" + message["Sender"] + "/" + message["Sender"] + "_public_key.pem"
-                    self.access_server.verify_with_public(sign, sim_key_encrypted, route_sender_pub)
-                    sim_key_decrypted = self.access_server.decrypt_with_private(sim_key_encrypted, route)
+                        simetric_hash = self.access_server.decrypt_with_private(sim_key_encrypted[0:512],route)
+                        sign_1 = self.access_server.decrypt_with_private(sim_key_encrypted[512:1024],route)
+                        sign_2 = self.access_server.decrypt_with_private(sim_key_encrypted[1024:],route)
+                        
+                        sim_key_decrypted = simetric_hash[0:-16]
+                        token = simetric_hash[-16:]
+                        
+                        key_hash = token
+                        h = hmac.HMAC(key_hash, hashes.SHA256())
+                        h.update(sim_key_decrypted)
+                        h = h.finalize()
+                        self.access_server.verify_with_public(sign_1 + sign_2, h, "keys/" + message["Sender"] + "/" + message["Sender"] + "_public_key.pem")
+
+                for participant in conversations:
+                    if participant["Receiver"] == message["Sender"] and participant["Sender"] == message["Receiver"] and participant["Key"] == "WAITING FOR RESPONSE":
+                            route = "keys/" + username + "/" + username + "_private_key.pem"
+                            key_hash = os.urandom(16)
+                            h = hmac.HMAC(key_hash, hashes.SHA256())
+                            h.update(sim_key_decrypted)
+                            h = h.finalize()
+                            signed_hash = self.access_server.sign_with_private(h, route)
+                            
+                            signed_hash_1 = signed_hash[0:255]
+                            signed_hash_2 = signed_hash[255:]
+                            route = "keys/" + message["Sender"] + "/" + message["Sender"] + "_public_key.pem"
+                            encrypted_simetric_key_1 = self.access_server.encrypt_with_public(sim_key_decrypted + key_hash, route)
+                            encrypted_simetric_key_2 = self.access_server.encrypt_with_public(signed_hash_1, route)
+                            encrypted_simetric_key_3 = self.access_server.encrypt_with_public(signed_hash_2, route)
+                            conversations.remove(participant)
+                            conversations.append({"Sender": message["Receiver"], "Receiver": message["Sender"], "Key": encrypted_simetric_key_1 + encrypted_simetric_key_2 + encrypted_simetric_key_3})
+                            self.access_server.save_jsons(conversations, "jsones/simetric_keys.json")
+
                 token = self.access_server.decrypt_with_symetric(encrypted_message.encode("utf-8"), sim_key_decrypted)
                 print("\n" + message["Sender"] + ": " + token.decode())
                 if input("\nDo you want to reply? Type Y/N: ") == "Y":
@@ -168,9 +205,20 @@ class Message():
         route = "keys/" + sender + "/" + sender + "_private_key.pem"
         for participant in keys:
             if participant["Receiver"] == message["Receiver"] and participant["Sender"] == message["Sender"]:
-                key = participant["Key"]
-        symetric_key = self.access_server.decrypt_with_private(key, route)
-        token = self.access_server.encrypt_with_symetric(content.encode("utf-8"), symetric_key)
+                sim_key_encrypted = participant["Key"]
+        simetric_hash = self.access_server.decrypt_with_private(sim_key_encrypted[0:512],route)
+        sign_1 = self.access_server.decrypt_with_private(sim_key_encrypted[512:1024],route)
+        sign_2 = self.access_server.decrypt_with_private(sim_key_encrypted[1024:],route)
+        
+        sim_key_decrypted = simetric_hash[0:-16]
+        token = simetric_hash[-16:]
+        
+        key_hash = token
+        h = hmac.HMAC(key_hash, hashes.SHA256())
+        h.update(sim_key_decrypted)
+        h = h.finalize()
+        self.access_server.verify_with_public(sign_1 + sign_2, h, "keys/" + message["Sender"] + "/" + message["Sender"] + "_public_key.pem")
+        token = self.access_server.encrypt_with_symetric(content.encode("utf-8"), sim_key_decrypted)
         message = {"Sender": sender, "Receiver": message["Sender"], "message": token.decode()}
         list_messages.append(message)
         self.access_server.save_jsons(list_messages,'jsones/m_unread.json')

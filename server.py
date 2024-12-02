@@ -24,7 +24,8 @@ class Server():
             self.create_key(server_dir)
             self.__key = self.get_key(server_dir)
             self.create_jsones()
-            self.certificates = self.create_certificates()
+        
+        self.certificates = self.create_certificates()
             
         self.__key = self.get_key(server_dir)
 
@@ -175,6 +176,12 @@ class Server():
             file.write(nonce + users)
 
 
+
+
+    
+
+
+
     def create_certificates(self):
         return All_Certificates()
 
@@ -310,6 +317,7 @@ class Server():
                 encoding=serialization.Encoding.PEM,
                 format=serialization.PublicFormat.SubjectPublicKeyInfo,
             ))
+
 
     def expedite_certificate(self, username, country):
         if country == "Spain":
