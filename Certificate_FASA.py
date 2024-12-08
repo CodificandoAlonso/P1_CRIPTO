@@ -4,16 +4,18 @@ from cryptography.hazmat.primitives import serialization
 import os
 import datetime
 from cryptography.hazmat.primitives import hashes
+from cryptography.x509.verification import PolicyBuilder, Store
 
 
 
 
 
 class All_Certificates():
-    def __init__(self):
+    def __init__(self, exists, lista):
         self.issuer_FASA = None
         self.subject_FASA = None
         self.certificate_FASA = None
+        self.chain = {}
         self.authority_dir_FASA = os.path.join(os.getcwd(),'keys' ,'Authorities', 'FASA')
         if not os.path.isdir(self.authority_dir_FASA):
             os.makedirs(self.authority_dir_FASA, exist_ok=True)
@@ -24,6 +26,7 @@ class All_Certificates():
             self.generate_certificate_FASA()
         else:
             self.load_certificate_FASA()
+            self.chain["FASA"] = "FASA"
         
         
 
@@ -37,6 +40,7 @@ class All_Certificates():
             self.generate_certificate_MVSA()
         else:
             self.load_certificate_MVSA()
+            self.chain["MVSA"] = "FASA"
 
         self.authority_dir_CSSA = os.path.join(os.getcwd(), 'keys', 'Authorities', 'CSSA')
         self.certificate_CSSA = None
@@ -48,6 +52,16 @@ class All_Certificates():
             self.generate_certificate_CSSA()
         else:
             self.load_certificate_CSSA()
+            self.chain["CSSA"] = "FASA"
+        if exists:
+            for user in lista.keys():
+                if lista[user] == 'Spain':
+                    self.chain[user] = "CSSA"
+                else:
+                    self.chain[user] = "MVSA"
+
+
+        
 
 
 
@@ -124,7 +138,7 @@ class All_Certificates():
                 x509.SubjectKeyIdentifier.from_public_key(self.__public_key_FASA),
                 critical=False,
             ).sign(self.__private_key_FASA, hashes.SHA256())
-
+        self.chain["FASA"] ="FASA"
 
         with open(self.authority_dir_FASA + "/FASA_cert.pem", "wb") as f:
             f.write(self.certificate_FASA.public_bytes(serialization.Encoding.PEM))
@@ -207,9 +221,13 @@ class All_Certificates():
             ),
             critical=False,
         ).sign(self.__private_key_FASA, hashes.SHA256())
+        self.chain["MVSA"] = "FASA"
 
         with open(self.authority_dir_MVSA + "/MVSA_cert.pem", "wb") as f:
             f.write(self.certificate_MVSA.public_bytes(serialization.Encoding.PEM))
+
+
+
 
 
 
@@ -292,6 +310,7 @@ class All_Certificates():
             ),
             critical=False,
         ).sign(self.__private_key_FASA, hashes.SHA256())
+        self.chain["CSSA"] = "FASA"
 
         with open(self.authority_dir_CSSA + "/CSSA_cert.pem", "wb") as f:
             f.write(self.certificate_CSSA.public_bytes(serialization.Encoding.PEM))
@@ -359,6 +378,8 @@ class All_Certificates():
             ),
             critical=False,
         ).sign(self.__private_key_CSSA, hashes.SHA256())
+        self.chain[username] = "CSSA"
+
 
         with open("keys/" + username + "/"+username+"_cert.pem", "wb") as f:
             f.write(ee_cert.public_bytes(serialization.Encoding.PEM))
@@ -427,10 +448,13 @@ class All_Certificates():
                 self.certificate_MVSA.extensions.get_extension_for_class(x509.SubjectKeyIdentifier).value
             ),
             critical=False,
-        ).sign(self.__private_key_CSSA, hashes.SHA256())
+        ).sign(self.__private_key_MVSA, hashes.SHA256())
+
+        self.chain[username] = "MVSA"
 
         with open("keys/" + username + "/"+username+"_cert.pem", "wb") as f:
             f.write(ee_cert.public_bytes(serialization.Encoding.PEM))
+
 
     def load_certificate_FASA(self):
         with open(self.authority_dir_FASA + "/FASA_cert.pem", "rb") as f:
@@ -443,3 +467,7 @@ class All_Certificates():
     def load_certificate_MVSA(self):
         with open(self.authority_dir_MVSA + "/MVSA_cert.pem", "rb") as f:
             self.certificate_MVSA = x509.load_pem_x509_certificate(f.read())
+
+
+
+    

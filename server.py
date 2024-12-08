@@ -1,6 +1,8 @@
+import datetime
 import json
 import base64
 import os
+from cryptography import x509
 from cryptography.fernet import Fernet
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 from cryptography.hazmat.primitives.ciphers.aead import ChaCha20Poly1305
@@ -24,11 +26,10 @@ class Server():
             self.create_key(server_dir)
             self.__key = self.get_key(server_dir)
             self.create_jsones()
-        
-        self.certificates = self.create_certificates()
+    
             
         self.__key = self.get_key(server_dir)
-
+        self.certificates = self.create_certificates()
 
 
 
@@ -183,7 +184,14 @@ class Server():
 
 
     def create_certificates(self):
-        return All_Certificates()
+        if not os.path.join('keys', "Authorities"):
+            return All_Certificates(False, [])
+        else:
+            users = self.open_and_return_jsons('jsones/users.json')
+            lista = {}
+            for user in users:
+                lista[user["username"]] = user["country"]
+            return All_Certificates(True, lista)
 
 
 
@@ -325,3 +333,82 @@ class Server():
 
         else:
             self.certificates.create_certificate_MVSA(username, country)
+
+
+
+
+    def return_chain(self, username):
+        chain = []
+        current = username
+
+        while current in self.certificates.chain:
+            next_value = self.certificates.chain[current]
+            chain.append(next_value)
+
+            # Detenemos si el valor actual es igual a la clave actual (autorreferencia)
+            if current == next_value:
+                break
+            
+            # Continuamos con el siguiente valor
+            current = next_value
+
+        buyer_chain_first = [username]
+        buyer_chain = buyer_chain_first + chain
+        buyer_chain = buyer_chain[:-1]
+        list_cert = {}
+        for element in buyer_chain:
+            if element in{"CSSA", "MVSA", "FASA"}:
+                with open("keys/" + "Authorities" + "/" + element + "/" + element + "_cert.pem", "rb") as f:
+                    list_cert[element] = f.read()
+            else:
+                with open("keys/" + element + "/" + element + "_cert.pem", "rb") as f:
+                    list_cert[element] = f.read()
+                     
+        return list_cert
+
+
+
+
+    def check_chain(self, chain):
+        contador = 0
+        lista_index = list(chain.keys())
+        maximo = len(chain)
+        for i in chain.keys():
+            if not self.validate_certificate_time(x509.load_pem_x509_certificate(chain[i])):
+                return False
+            if contador != maximo - 1:
+                with open("keys/Authorities/" + lista_index[contador +1] + "/" + lista_index[contador +1] + "_public_key.pem", "rb") as f:
+                    public_key = serialization.load_pem_public_key(
+                        f.read()
+                    )
+                if not self.validate_certificate_signature(x509.load_pem_x509_certificate(chain[i]),public_key):
+                    return False
+            else:
+                with open("keys/Authorities/" + lista_index[contador] + "/" + lista_index[contador] + "_public_key.pem", "rb") as f:
+                    public_key = serialization.load_pem_public_key(
+                        f.read()
+                    )
+                if not self.validate_certificate_signature(x509.load_pem_x509_certificate(chain[i]),public_key):
+                    return False
+            contador += 1
+
+
+    def validate_certificate_time(self,cert):
+        now = datetime.datetime.now(datetime.timezone.utc)
+        if not (cert.not_valid_before_utc <= now <= cert.not_valid_after_utc):
+            raise ValueError("Certificate outside of validity period.")
+        return True
+
+
+
+    def validate_certificate_signature(self,cert, public_key):
+        try:
+            public_key.verify(
+                cert.signature,
+                cert.tbs_certificate_bytes,
+                padding.PKCS1v15(),
+                cert.signature_hash_algorithm,
+            )
+            return True
+        except Exception as e:
+            raise ValueError("Certificate signature not valid") from e

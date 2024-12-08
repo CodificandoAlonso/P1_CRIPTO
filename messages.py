@@ -10,6 +10,7 @@ class Message():
 
     def send_messages(self, product, buyer):
         list_messages = self.access_server.open_and_return_jsons('jsones/m_unread.json')
+        buyer_chain = self.access_server.return_chain(buyer)
         content = "Product: " + product["name"] + " : "
         content += input("Write your message: ")
 
@@ -23,6 +24,7 @@ class Message():
         if key == 0: #NO COMUNICACION
             key = Fernet.generate_key()
         else:
+            route = "keys/" + buyer + "/" + buyer + "_private_key.pem"
             simetric_hash = self.access_server.decrypt_with_private(key[0:512],route)
             sign_1 = self.access_server.decrypt_with_private(key[512:1024],route)
             sign_2 = self.access_server.decrypt_with_private(key[1024:],route)
@@ -34,12 +36,14 @@ class Message():
             h = hmac.HMAC(key_hash, hashes.SHA256())
             h.update(sim_key_decrypted)
             h = h.finalize()
-            self.access_server.verify_with_public(sign_1 + sign_2, h, "keys/" + message["Sender"] + "/" + message["Sender"] + "_public_key.pem")
+            self.access_server.verify_with_public(sign_1 + sign_2, h, "keys/" + product["seller"] + "/" + product["seller"] + "_public_key.pem")
             token = self.access_server.encrypt_with_symetric(content.encode("utf-8"), sim_key_decrypted)
             list_messages.append({"Sender": buyer, "Receiver": product["seller"], "message": token.decode()})
             return self.access_server.save_jsons(list_messages,'jsones/m_unread.json')
             
-        
+        seller_chain = self.access_server.return_chain(product["seller"])
+        if self.access_server.check_chain(seller_chain) == False:
+            raise Exception("Chain not valid")
 
         route_seller = "keys/" + product["seller"] + "/" + product["seller"] + "_public_key.pem"
 
@@ -72,9 +76,9 @@ class Message():
 
         
         #GUARDO
-        content_to_save = {"Sender": buyer, "Receiver":product["seller"], "Key": encrypted_simetric_key_1 + encrypted_simetric_key_2 + encrypted_simetric_key_3}
+        content_to_save = {"Sender": buyer, "Receiver":product["seller"], "Key": encrypted_simetric_key_1 + encrypted_simetric_key_2 + encrypted_simetric_key_3, "Chain": buyer_chain}
         keys.append(content_to_save)
-        content_to_save = {"Sender": product["seller"], "Receiver":buyer, "Key": "WAITING FOR RESPONSE"}
+        content_to_save = {"Sender": product["seller"], "Receiver":buyer, "Key": "WAITING FOR RESPONSE", "Chain": "YOU NEED TO DELETE THIS"}
         keys.append(content_to_save)
         message = {"Sender": buyer, "Receiver": product["seller"], "message": token.decode()}
         list_messages.append(message)
@@ -114,18 +118,26 @@ class Message():
                 for item in conversations:
                     if item["Receiver"] == username and message["Sender"] == item["Sender"]:
                         sim_key_encrypted = item["Key"]
-                        simetric_hash = self.access_server.decrypt_with_private(sim_key_encrypted[0:512],route)
-                        sign_1 = self.access_server.decrypt_with_private(sim_key_encrypted[512:1024],route)
-                        sign_2 = self.access_server.decrypt_with_private(sim_key_encrypted[1024:],route)
+                        chain = item["Chain"]
+                        if chain != "Verified":
+                            if self.access_server.check_chain(chain) == False:
+                                raise Exception("Chain not valid")
                         
-                        sim_key_decrypted = simetric_hash[0:-16]
-                        token = simetric_hash[-16:]
-                        
-                        key_hash = token
-                        h = hmac.HMAC(key_hash, hashes.SHA256())
-                        h.update(sim_key_decrypted)
-                        h = h.finalize()
-                        self.access_server.verify_with_public(sign_1 + sign_2, h, "keys/" + message["Sender"] + "/" + message["Sender"] + "_public_key.pem")
+                            route = "keys/" + username + "/" + username + "_private_key.pem"
+                            simetric_hash = self.access_server.decrypt_with_private(sim_key_encrypted[0:512],route)
+                            sign_1 = self.access_server.decrypt_with_private(sim_key_encrypted[512:1024],route)
+                            sign_2 = self.access_server.decrypt_with_private(sim_key_encrypted[1024:],route)
+                            
+                            sim_key_decrypted = simetric_hash[0:-16]
+                            token = simetric_hash[-16:]
+                            
+                            key_hash = token
+                            h = hmac.HMAC(key_hash, hashes.SHA256())
+                            h.update(sim_key_decrypted)
+                            h = h.finalize()
+                            self.access_server.verify_with_public(sign_1 + sign_2, h, "keys/" + message["Sender"] + "/" + message["Sender"] + "_public_key.pem")
+                            conversations.remove(item)
+                            conversations.append({"Sender": message["Sender"], "Receiver": username, "Key": sim_key_encrypted, "Chain": "Verified"})
 
                 for participant in conversations:
                     if participant["Receiver"] == message["Sender"] and participant["Sender"] == message["Receiver"] and participant["Key"] == "WAITING FOR RESPONSE":
@@ -143,7 +155,7 @@ class Message():
                             encrypted_simetric_key_2 = self.access_server.encrypt_with_public(signed_hash_1, route)
                             encrypted_simetric_key_3 = self.access_server.encrypt_with_public(signed_hash_2, route)
                             conversations.remove(participant)
-                            conversations.append({"Sender": message["Receiver"], "Receiver": message["Sender"], "Key": encrypted_simetric_key_1 + encrypted_simetric_key_2 + encrypted_simetric_key_3})
+                            conversations.append({"Sender": message["Receiver"], "Receiver": message["Sender"], "Key": encrypted_simetric_key_1 + encrypted_simetric_key_2 + encrypted_simetric_key_3, "Chain": "Verified"})
                             self.access_server.save_jsons(conversations, "jsones/simetric_keys.json")
 
                 token = self.access_server.decrypt_with_symetric(encrypted_message.encode("utf-8"), sim_key_decrypted)
