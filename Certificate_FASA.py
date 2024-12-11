@@ -7,16 +7,13 @@ from cryptography.hazmat.primitives import hashes
 from cryptography.x509.verification import PolicyBuilder, Store
 
 
-
-
-
 class All_Certificates():
     def __init__(self, exists, lista):
         self.issuer_FASA = None
         self.subject_FASA = None
         self.certificate_FASA = None
         self.chain = {}
-        self.authority_dir_FASA = os.path.join(os.getcwd(),'keys' ,'Authorities', 'FASA')
+        self.authority_dir_FASA = os.path.join(os.getcwd(), 'keys', 'Authorities', 'FASA')
         if not os.path.isdir(self.authority_dir_FASA):
             os.makedirs(self.authority_dir_FASA, exist_ok=True)
             self.create_pepe_keys_FASA()
@@ -27,8 +24,6 @@ class All_Certificates():
         else:
             self.load_certificate_FASA()
             self.chain["FASA"] = "FASA"
-        
-        
 
         self.authority_dir_MVSA = os.path.join(os.getcwd(), 'keys', 'Authorities', 'MVSA')
         self.certificate_MVSA = None
@@ -60,17 +55,11 @@ class All_Certificates():
                 else:
                     self.chain[user] = "MVSA"
 
-
-        
-
-
-
-
     def create_pepe_keys_FASA(self):
         private_key = rsa.generate_private_key(
-                public_exponent=65537,
-                key_size = 4096,
-            )
+            public_exponent=65537,
+            key_size=4096,
+        )
         public_key = private_key.public_key()
         with open(self.authority_dir_FASA + "/FASA_private_key.pem", "wb") as f:
             f.write(private_key.private_bytes(
@@ -84,8 +73,6 @@ class All_Certificates():
                 format=serialization.PublicFormat.SubjectPublicKeyInfo,
             ))
 
-
-
     def get_keys_FASA(self):
         with open(self.authority_dir_FASA + "/FASA_private_key.pem", "rb") as f:
             private_key = serialization.load_pem_private_key(
@@ -95,7 +82,6 @@ class All_Certificates():
         with open(self.authority_dir_FASA + "/FASA_public_key.pem", "rb") as f:
             public_key = serialization.load_pem_public_key(f.read())
         return private_key, public_key
-    
 
     def generate_certificate_FASA(self):
         self.subject_FASA = self.issuer_FASA = x509.Name([
@@ -105,44 +91,43 @@ class All_Certificates():
             x509.NameAttribute(x509.NameOID.ORGANIZATION_NAME, u"Fernando Alonso Shopping Authority"),
             x509.NameAttribute(x509.NameOID.COMMON_NAME, u"FASA"),
         ])
-        
+
         self.certificate_FASA = x509.CertificateBuilder().subject_name(
-                self.subject_FASA
-            ).issuer_name(
-                self.issuer_FASA
-            ).public_key(
-                self.__public_key_FASA
-            ).serial_number(
-                x509.random_serial_number()
-            ).not_valid_before(
-                datetime.datetime.now(datetime.timezone.utc)
-            ).not_valid_after(
-                datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(days=365*10)
-            ).add_extension(
-                x509.BasicConstraints(ca=True, path_length=None),
-                critical=True,
-            ).add_extension(
-                x509.KeyUsage(
-                    digital_signature=True,
-                    content_commitment=False,
-                    key_encipherment=False,
-                    data_encipherment=False,
-                    key_agreement=False,
-                    key_cert_sign=True,
-                    crl_sign=True,
-                    encipher_only=False,
-                    decipher_only=False,
-                ),
-                critical=True,
-            ).add_extension(
-                x509.SubjectKeyIdentifier.from_public_key(self.__public_key_FASA),
-                critical=False,
-            ).sign(self.__private_key_FASA, hashes.SHA256())
-        self.chain["FASA"] ="FASA"
+            self.subject_FASA
+        ).issuer_name(
+            self.issuer_FASA
+        ).public_key(
+            self.__public_key_FASA
+        ).serial_number(
+            x509.random_serial_number()
+        ).not_valid_before(
+            datetime.datetime.now(datetime.timezone.utc)
+        ).not_valid_after(
+            datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(days=365 * 10)
+        ).add_extension(
+            x509.BasicConstraints(ca=True, path_length=None),
+            critical=True,
+        ).add_extension(
+            x509.KeyUsage(
+                digital_signature=True,
+                content_commitment=False,
+                key_encipherment=False,
+                data_encipherment=False,
+                key_agreement=False,
+                key_cert_sign=True,
+                crl_sign=True,
+                encipher_only=False,
+                decipher_only=False,
+            ),
+            critical=True,
+        ).add_extension(
+            x509.SubjectKeyIdentifier.from_public_key(self.__public_key_FASA),
+            critical=False,
+        ).sign(self.__private_key_FASA, hashes.SHA256())
+        self.chain["FASA"] = "FASA"
 
         with open(self.authority_dir_FASA + "/FASA_cert.pem", "wb") as f:
             f.write(self.certificate_FASA.public_bytes(serialization.Encoding.PEM))
-
 
     def create_pepe_keys_MVSA(self):
         private_key = rsa.generate_private_key(
@@ -162,7 +147,6 @@ class All_Certificates():
                 format=serialization.PublicFormat.SubjectPublicKeyInfo,
             ))
 
-
     def get_keys_MVSA(self):
         with open(self.authority_dir_MVSA + "/MVSA_private_key.pem", "rb") as f:
             private_key = serialization.load_pem_private_key(
@@ -172,7 +156,6 @@ class All_Certificates():
         with open(self.authority_dir_MVSA + "/MVSA_public_key.pem", "rb") as f:
             public_key = serialization.load_pem_public_key(f.read())
         return private_key, public_key
-
 
     def generate_certificate_MVSA(self):
         self.subject_MVSA = x509.Name([
@@ -226,17 +209,11 @@ class All_Certificates():
         with open(self.authority_dir_MVSA + "/MVSA_cert.pem", "wb") as f:
             f.write(self.certificate_MVSA.public_bytes(serialization.Encoding.PEM))
 
-
-
-
-
-
-
     def create_pepe_keys_CSSA(self):
         private_key = rsa.generate_private_key(
-                public_exponent=65537,
-                key_size = 4096,
-            )
+            public_exponent=65537,
+            key_size=4096,
+        )
         public_key = private_key.public_key()
         with open(self.authority_dir_CSSA + "/CSSA_private_key.pem", "wb") as f:
             f.write(private_key.private_bytes(
@@ -259,9 +236,6 @@ class All_Certificates():
         with open(self.authority_dir_CSSA + "/CSSA_public_key.pem", "rb") as f:
             public_key = serialization.load_pem_public_key(f.read())
         return private_key, public_key
-
-
-
 
     def generate_certificate_CSSA(self):
         self.subject_CSSA = x509.Name([
@@ -315,15 +289,14 @@ class All_Certificates():
         with open(self.authority_dir_CSSA + "/CSSA_cert.pem", "wb") as f:
             f.write(self.certificate_CSSA.public_bytes(serialization.Encoding.PEM))
 
-
     def create_certificate_CSSA(self, username, country):
         subject = x509.Name([
-     x509.NameAttribute(x509.NameOID.COUNTRY_NAME, "ES"),
-    x509.NameAttribute(x509.NameOID.STATE_OR_PROVINCE_NAME, country),
-     x509.NameAttribute(x509.NameOID.LOCALITY_NAME, "MADRID"),
-     x509.NameAttribute(x509.NameOID.ORGANIZATION_NAME, username),
-])
-        with open("keys/" + username + "/"+username+"_public_key.pem", "rb") as f:
+            x509.NameAttribute(x509.NameOID.COUNTRY_NAME, "ES"),
+            x509.NameAttribute(x509.NameOID.STATE_OR_PROVINCE_NAME, country),
+            x509.NameAttribute(x509.NameOID.LOCALITY_NAME, "MADRID"),
+            x509.NameAttribute(x509.NameOID.ORGANIZATION_NAME, username),
+        ])
+        with open("keys/" + username + "/" + username + "_public_key.pem", "rb") as f:
             user_public = serialization.load_pem_public_key(
                 f.read()
             )
@@ -380,21 +353,17 @@ class All_Certificates():
         ).sign(self.__private_key_CSSA, hashes.SHA256())
         self.chain[username] = "CSSA"
 
-
-        with open("keys/" + username + "/"+username+"_cert.pem", "wb") as f:
+        with open("keys/" + username + "/" + username + "_cert.pem", "wb") as f:
             f.write(ee_cert.public_bytes(serialization.Encoding.PEM))
-
-
-
 
     def create_certificate_MVSA(self, username, country):
         subject = x509.Name([
-     x509.NameAttribute(x509.NameOID.COUNTRY_NAME, "NL"),
-    x509.NameAttribute(x509.NameOID.STATE_OR_PROVINCE_NAME, country),
-     x509.NameAttribute(x509.NameOID.LOCALITY_NAME, "NETHERLANDS"),
-     x509.NameAttribute(x509.NameOID.ORGANIZATION_NAME, username),
-])
-        with open("keys/" + username + "/"+username+"_public_key.pem", "rb") as f:
+            x509.NameAttribute(x509.NameOID.COUNTRY_NAME, "NL"),
+            x509.NameAttribute(x509.NameOID.STATE_OR_PROVINCE_NAME, country),
+            x509.NameAttribute(x509.NameOID.LOCALITY_NAME, "NETHERLANDS"),
+            x509.NameAttribute(x509.NameOID.ORGANIZATION_NAME, username),
+        ])
+        with open("keys/" + username + "/" + username + "_public_key.pem", "rb") as f:
             user_public = serialization.load_pem_public_key(
                 f.read()
             )
@@ -452,9 +421,8 @@ class All_Certificates():
 
         self.chain[username] = "MVSA"
 
-        with open("keys/" + username + "/"+username+"_cert.pem", "wb") as f:
+        with open("keys/" + username + "/" + username + "_cert.pem", "wb") as f:
             f.write(ee_cert.public_bytes(serialization.Encoding.PEM))
-
 
     def load_certificate_FASA(self):
         with open(self.authority_dir_FASA + "/FASA_cert.pem", "rb") as f:
@@ -467,7 +435,3 @@ class All_Certificates():
     def load_certificate_MVSA(self):
         with open(self.authority_dir_MVSA + "/MVSA_cert.pem", "rb") as f:
             self.certificate_MVSA = x509.load_pem_x509_certificate(f.read())
-
-
-
-    

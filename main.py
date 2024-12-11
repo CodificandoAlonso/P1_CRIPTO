@@ -5,9 +5,11 @@ from messages import Message
 import getpass
 import os, shutil
 
+
 class App():
     def __init__(self):
-        print('Welcome to the app, if anytime you want to exit, press Ctrl + C.\n [DEBUG] THIS DATABASES AND THE DATA ARE BEING PROTECTED WITH ChaCha20Poly1305\n')
+        print(
+            'Welcome to the app, if anytime you want to exit, press Ctrl + C.\n [DEBUG] THIS DATABASES AND THE DATA ARE BEING PROTECTED WITH ChaCha20Poly1305\n')
         self.logged = False
         self.server = Server()
         self.message = Message(self.server)
@@ -18,7 +20,6 @@ class App():
         country = input('Enter country(Spain or Netherlands): ')
         password = getpass.getpass('Enter password: ')
         User(username, country, password, self.server)
-
 
     def login(self):
         username = input('Enter username: ')
@@ -31,10 +32,7 @@ class App():
                 print('Wrong password')
                 return False
 
-
-
-
-    #que la app esté siempre activa salvo que se pulse ctrl+c
+    # que la app esté siempre activa salvo que se pulse ctrl+c
     def run(self):
         while True:
             try:
@@ -47,13 +45,14 @@ class App():
                 self.server.delete_symetric()
                 print('\nGoodbye')
                 break
-    
+
     def handle_user_actions(self):
-        whatodo = input("You can either view the available products(Type 'View products'), put products on sale('Sale'), view your messages('Messages') or log out(Type 'Log out')\n")
+        whatodo = input(
+            "You can either view the available products(Type 'View products'), put products on sale('Sale'), view your messages('Messages') or log out(Type 'Log out')\n")
         while whatodo != "View products" and whatodo != "Sale" and whatodo != "Messages" and whatodo != "Log out":
             whatodo = input("Please type 'View products', 'Sale', 'Messages' or 'Log out': ")
         if whatodo == "View products":
-            self.server.show_products(self.username)               
+            self.server.show_products(self.username)
         elif whatodo == "Sale":
             self.server.add_products(self.username)
         elif whatodo == "Messages":
@@ -63,8 +62,9 @@ class App():
             print("You have logged out")
 
     def manage_user_session(self):
-        myinput = input("Hi. If you already have a registered username please type 'Log in' \n If you otherwise want to sign up, please type 'Sign up': ")
-        while  myinput != "Log in" and myinput != "Sign up":
+        myinput = input(
+            "Hi. If you already have a registered username please type 'Log in' \n If you otherwise want to sign up, please type 'Sign up': ")
+        while myinput != "Log in" and myinput != "Sign up":
             myinput = input("Please type 'Log in' or 'Sign up': ")
         if myinput == "Sign up":
             self.signup()

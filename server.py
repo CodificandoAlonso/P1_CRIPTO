@@ -19,41 +19,35 @@ class Server():
         self.message = Message(self)
         server_dir = os.path.join('keys', "Server")
         """Primera instanciacion del servidor. Creamos localizacion de clave
-        para desencriptar los jsones y creamos los jsones encriptados"""  
+        para desencriptar los jsones y creamos los jsones encriptados"""
         if not os.path.isdir(server_dir):
             os.makedirs(server_dir, exist_ok=True)
             self.create_pepe_keys(server_dir)
             self.create_key(server_dir)
             self.__key = self.get_key(server_dir)
             self.create_jsones()
-    
-            
+
         self.__key = self.get_key(server_dir)
         self.certificates = self.create_certificates()
 
-
-
-
-
-    def check_username(self,username):
-        data = self.open_and_return_jsons('jsones/users.json')      
+    def check_username(self, username):
+        data = self.open_and_return_jsons('jsones/users.json')
         for users in data:
-            if users['username'] == username :
-                    return True
+            if users['username'] == username:
+                return True
         return False
-        
 
-    def check_password(self,username, password):
+    def check_password(self, username, password):
         users = self.open_and_return_jsons('jsones/users.json')
         for user in users:
             if user["username"] == username:
                 password = password.encode("utf-8")
                 salt = eval(user["id"])
                 kdf = PBKDF2HMAC(
-                algorithm=hashes.SHA256(),
-                length=32,
-                salt= salt,
-                iterations=480000,
+                    algorithm=hashes.SHA256(),
+                    length=32,
+                    salt=salt,
+                    iterations=480000,
                 )
 
                 key = base64.urlsafe_b64encode(kdf.derive(password))
@@ -61,8 +55,6 @@ class Server():
                 if key == prevtoken:
                     return True
         return False
-        
-
 
     def show_products(self, username):
         products = self.open_and_return_jsons('jsones/products.json')
@@ -72,7 +64,7 @@ class Server():
         counter = 0
         for product in products:
             if product["seller"] != username:
-                output +=  str(counter) + ": " + str(product) + "\n"
+                output += str(counter) + ": " + str(product) + "\n"
             counter += 1
         if len(output) == 0:
             return print("No products available")
@@ -81,7 +73,7 @@ class Server():
         if buy == "Y":
             number = int(input("Put the product number you want to buy: "))
             self.buy_products(number, username)
-    
+
     def add_products(self, username):
         products = self.open_and_return_jsons('jsones/products.json')
         name = input("Enter the name of the product: ")
@@ -89,63 +81,58 @@ class Server():
         products.append({"name": name, "price": price, "seller": username})
         self.save_jsons(products, 'jsones/products.json')
         return print("Product added")
-        
+
     def buy_products(self, number, username):
         products = self.open_and_return_jsons('jsones/products.json')
         product = products[number]
         print(product["seller"], product["name"])
-        if input("Is this the product you want? Type Y/N: ")== "Y":
-            self.message.send_messages(product,username)
+        if input("Is this the product you want? Type Y/N: ") == "Y":
+            self.message.send_messages(product, username)
 
-    
     def encrypt_and_save_json(data, file_path, key):
         # Convertir el JSON a una cadena
         json_str = json.dumps(data)
-        
+
         # Generar un nonce de 12 bytes
         nonce = os.urandom(12)
-        
+
         # Crear una instancia de ChaCha20Poly1305
         chacha = ChaCha20Poly1305(key)
-        
+
         # Cifrar el contenido JSON
         ciphertext = chacha.encrypt(nonce, json_str.encode('utf-8'), None)
-        
+
         # Guardar el contenido cifrado en un archivo
         with open(file_path, 'wb') as file:
             file.write(nonce + ciphertext)
 
-
-
-    def create_key(self,route):
+    def create_key(self, route):
         key = ChaCha20Poly1305.generate_key()
         key_hash = os.urandom(16)
         h = hmac.HMAC(key_hash, hashes.SHA256())
         h.update(key)
         h = h.finalize()
         signed_hash = self.sign_with_private(h, route + "/Server_private_key.pem")
-        
+
         signed_hash_1 = signed_hash[0:255]
         signed_hash_2 = signed_hash[255:]
-        encrypted_key = self.encrypt_with_public(key + key_hash, route+"/Server_public_key.pem")
-        encrypted_sign_1 = self.encrypt_with_public(signed_hash_1, route+"/Server_public_key.pem")
-        encrypted_sign_2 = self.encrypt_with_public(signed_hash_2, route+"/Server_public_key.pem")
-        
+        encrypted_key = self.encrypt_with_public(key + key_hash, route + "/Server_public_key.pem")
+        encrypted_sign_1 = self.encrypt_with_public(signed_hash_1, route + "/Server_public_key.pem")
+        encrypted_sign_2 = self.encrypt_with_public(signed_hash_2, route + "/Server_public_key.pem")
+
         with open(route + "/key.bin", 'wb') as key_file:
             key_file.write(encrypted_key + encrypted_sign_1 + encrypted_sign_2)
 
-
-            
     def get_key(self, route):
         with open(route + "/key.bin", 'rb') as key_file:
             key_file = key_file.read()
-            simetric_hash = self.decrypt_with_private(key_file[0:512],route + "/Server_private_key.pem")
-            sign_1 = self.decrypt_with_private(key_file[512:1024],route + "/Server_private_key.pem")
-            sign_2 = self.decrypt_with_private(key_file[1024:],route + "/Server_private_key.pem")
-            
+            simetric_hash = self.decrypt_with_private(key_file[0:512], route + "/Server_private_key.pem")
+            sign_1 = self.decrypt_with_private(key_file[512:1024], route + "/Server_private_key.pem")
+            sign_2 = self.decrypt_with_private(key_file[1024:], route + "/Server_private_key.pem")
+
             key = simetric_hash[0:-16]
             token = simetric_hash[-16:]
-            
+
             key_hash = token
             h = hmac.HMAC(key_hash, hashes.SHA256())
             h.update(key)
@@ -153,8 +140,6 @@ class Server():
             self.verify_with_public(sign_1 + sign_2, h, route + "/Server_public_key.pem")
 
             return key
-        
-
 
     def create_jsones(self):
         """users    products    m_unread     m_read    simetric_keys"""
@@ -168,20 +153,12 @@ class Server():
     def create_each_json(self, encrypter, route):
         json_route = os.path.join('jsones')
         with open(json_route + "/" + route, 'wb') as file:
-
             data = []
             json_str = json.dumps(data)
             nonce = os.urandom(12)
-            
-            users = encrypter.encrypt(nonce,json_str.encode('utf-8'), None)
+
+            users = encrypter.encrypt(nonce, json_str.encode('utf-8'), None)
             file.write(nonce + users)
-
-
-
-
-    
-
-
 
     def create_certificates(self):
         if not os.path.join('keys', "Authorities"):
@@ -193,39 +170,33 @@ class Server():
                 lista[user["username"]] = user["country"]
             return All_Certificates(True, lista)
 
-
-
-
-    def open_and_return_jsons(self,route):
+    def open_and_return_jsons(self, route):
         with open(route, 'rb') as file:
             data = file.read()
         nonce = data[:12]
         ciphertext = data[12:]
-        
+
         # Crear una instancia de ChaCha20Poly1305
         chacha = ChaCha20Poly1305(self.__key)
-        
+
         # Descifrar el contenido JSON
         json_str = chacha.decrypt(nonce, ciphertext, None)
-        
+
         # Convertir la cadena JSON a un objeto Python
         return eval(json_str)
-    
 
     def save_jsons(self, data, route):
-        with open(route , 'wb') as file:
+        with open(route, 'wb') as file:
             str_data = str(data)
             nonce = os.urandom(12)
             encrypter = ChaCha20Poly1305(self.__key)
-            users = encrypter.encrypt(nonce,str_data.encode('utf-8'), None)
+            users = encrypter.encrypt(nonce, str_data.encode('utf-8'), None)
             file.write(nonce + users)
 
     def delete_symetric(self):
         encrypter = ChaCha20Poly1305(self.__key)
         self.create_each_json(encrypter, "simetric_keys.json")
         self.create_each_json(encrypter, "m_unread.json")
-
-
 
     def sign_with_private(self, message, private_key_route):
         with open(private_key_route, "rb") as key_file:
@@ -241,7 +212,7 @@ class Server():
             ),
             hashes.SHA256()
         )
-    
+
     def verify_with_public(self, signature, message, public_key_route):
         with open(public_key_route, "rb") as key_file:
             public_key = serialization.load_pem_public_key(
@@ -263,7 +234,7 @@ class Server():
                 key_file.read(),
                 password=None,
             )
-        #print("\n[DEBUG] Decrypting keys with private key method RSA with key length 4096\n")
+        # print("\n[DEBUG] Decrypting keys with private key method RSA with key length 4096\n")
         return private_key.decrypt(
             encrypted,
             padding.OAEP(
@@ -272,12 +243,13 @@ class Server():
                 label=None
             )
         )
+
     def encrypt_with_public(self, message, public_key_route):
         with open(public_key_route, "rb") as key_file:
             public_key = serialization.load_pem_public_key(
                 key_file.read()
             )
-        #print("\n[DEBUG] Encrypting keys with public key method RSA with key length 4096\n")
+        # print("\n[DEBUG] Encrypting keys with public key method RSA with key length 4096\n")
         return public_key.encrypt(
             message,
             padding.OAEP(
@@ -286,33 +258,32 @@ class Server():
                 label=None
             )
         )
-    
+
     def encrypt_with_symetric(self, message, symetric_key):
         encrypter = Fernet(symetric_key)
         return encrypter.encrypt(message)
-    
+
     def decrypt_with_symetric(self, encrypted, symetric_key):
         encrypter = Fernet(symetric_key)
         return encrypter.decrypt(encrypted)
-    
+
     def return_public_key(self, username):
-        with open("keys/" + username + "/"+username+"_public_key.pem", "rb") as f:
+        with open("keys/" + username + "/" + username + "_public_key.pem", "rb") as f:
             return f.read()
-        
+
     def return_private_key(self, username):
-        with open("keys/" + username + "/"+username+"_private_key.pem", "rb") as f:
+        with open("keys/" + username + "/" + username + "_private_key.pem", "rb") as f:
             private_key = serialization.load_pem_private_key(
                 f.read(),
                 password=None,
             )
             return private_key
-        
 
     def create_pepe_keys(self, route):
         private_key = rsa.generate_private_key(
-                public_exponent=65537,
-                key_size = 4096,
-            )
+            public_exponent=65537,
+            key_size=4096,
+        )
         public_key = private_key.public_key()
         with open(route + "/Server_private_key.pem", "wb") as f:
             f.write(private_key.private_bytes(
@@ -326,16 +297,12 @@ class Server():
                 format=serialization.PublicFormat.SubjectPublicKeyInfo,
             ))
 
-
     def expedite_certificate(self, username, country):
         if country == "Spain":
             self.certificates.create_certificate_CSSA(username, country)
 
         else:
             self.certificates.create_certificate_MVSA(username, country)
-
-
-
 
     def return_chain(self, username):
         chain = []
@@ -348,7 +315,7 @@ class Server():
             # Detenemos si el valor actual es igual a la clave actual (autorreferencia)
             if current == next_value:
                 break
-            
+
             # Continuamos con el siguiente valor
             current = next_value
 
@@ -357,17 +324,14 @@ class Server():
         buyer_chain = buyer_chain[:-1]
         list_cert = {}
         for element in buyer_chain:
-            if element in{"CSSA", "MVSA", "FASA"}:
+            if element in {"CSSA", "MVSA", "FASA"}:
                 with open("keys/" + "Authorities" + "/" + element + "/" + element + "_cert.pem", "rb") as f:
                     list_cert[element] = f.read()
             else:
                 with open("keys/" + element + "/" + element + "_cert.pem", "rb") as f:
                     list_cert[element] = f.read()
-                     
+
         return list_cert
-
-
-
 
     def check_chain(self, chain):
         contador = 0
@@ -377,31 +341,30 @@ class Server():
             if not self.validate_certificate_time(x509.load_pem_x509_certificate(chain[i])):
                 return False
             if contador != maximo - 1:
-                with open("keys/Authorities/" + lista_index[contador +1] + "/" + lista_index[contador +1] + "_public_key.pem", "rb") as f:
+                with open("keys/Authorities/" + lista_index[contador + 1] + "/" + lista_index[
+                    contador + 1] + "_public_key.pem", "rb") as f:
                     public_key = serialization.load_pem_public_key(
                         f.read()
                     )
-                if not self.validate_certificate_signature(x509.load_pem_x509_certificate(chain[i]),public_key):
+                if not self.validate_certificate_signature(x509.load_pem_x509_certificate(chain[i]), public_key):
                     return False
             else:
-                with open("keys/Authorities/" + lista_index[contador] + "/" + lista_index[contador] + "_public_key.pem", "rb") as f:
+                with open("keys/Authorities/" + lista_index[contador] + "/" + lista_index[contador] + "_public_key.pem",
+                          "rb") as f:
                     public_key = serialization.load_pem_public_key(
                         f.read()
                     )
-                if not self.validate_certificate_signature(x509.load_pem_x509_certificate(chain[i]),public_key):
+                if not self.validate_certificate_signature(x509.load_pem_x509_certificate(chain[i]), public_key):
                     return False
             contador += 1
 
-
-    def validate_certificate_time(self,cert):
+    def validate_certificate_time(self, cert):
         now = datetime.datetime.now(datetime.timezone.utc)
         if not (cert.not_valid_before_utc <= now <= cert.not_valid_after_utc):
             raise ValueError("Certificate outside of validity period.")
         return True
 
-
-
-    def validate_certificate_signature(self,cert, public_key):
+    def validate_certificate_signature(self, cert, public_key):
         try:
             public_key.verify(
                 cert.signature,
